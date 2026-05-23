@@ -1,7 +1,5 @@
 package com.mediqr.android;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,24 +13,30 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mediqr.android.data.MedicalRepository;
+import com.mediqr.android.models.Cita;
+import com.mediqr.android.models.Documento;
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * HistorialActivity: Registro cronológico de atenciones.
+ * Muestra la relación entre consultas y evidencias médicas.
+ */
 public class HistorialActivity extends AppCompatActivity {
 
     private RecyclerView rvHistorial;
     private TextView tvEmpty;
-    private List<Cita> attendedCitas;
-    private List<Documento> allDocs;
-    private HistorialAdapter adapter;
+    private MedicalRepository repository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_historial);
+
+        repository = MedicalRepository.getInstance(this);
 
         Toolbar toolbar = findViewById(R.id.toolbarHistorial);
         setSupportActionBar(toolbar);
@@ -44,37 +48,29 @@ public class HistorialActivity extends AppCompatActivity {
         rvHistorial = findViewById(R.id.rvHistorial);
         tvEmpty = findViewById(R.id.tvEmptyHistorial);
 
-        loadData();
+        loadHistorial();
+    }
 
-        adapter = new HistorialAdapter(attendedCitas, allDocs);
+    private void loadHistorial() {
+        List<Cita> allCitas = repository.getAppointments(false);
+        List<Cita> attendedCitas = new ArrayList<>();
+        for (Cita c : allCitas) {
+            if (c.isAtendida()) attendedCitas.add(c);
+        }
+        Collections.reverse(attendedCitas);
+
+        List<Documento> allDocs = repository.getDocuments();
+
+        HistorialAdapter adapter = new HistorialAdapter(attendedCitas, allDocs);
         rvHistorial.setLayoutManager(new LinearLayoutManager(this));
         rvHistorial.setAdapter(adapter);
 
         if (attendedCitas.isEmpty()) {
             tvEmpty.setVisibility(View.VISIBLE);
             rvHistorial.setVisibility(View.GONE);
-        }
-    }
-
-    private void loadData() {
-        // Cargar citas atendidas
-        SharedPreferences citaPrefs = getSharedPreferences("MediQR_Citas", Context.MODE_PRIVATE);
-        Set<String> citaSet = citaPrefs.getStringSet("citas_set", new HashSet<>());
-        attendedCitas = new ArrayList<>();
-        for (String s : citaSet) {
-            Cita c = Cita.fromString(s);
-            if (c != null && c.isAtendida()) attendedCitas.add(c);
-        }
-        Collections.sort(attendedCitas, Cita.DateComparator);
-        Collections.reverse(attendedCitas); // Más recientes primero
-
-        // Cargar todos los documentos para relacionar
-        SharedPreferences docPrefs = getSharedPreferences("MediQR_Docs", Context.MODE_PRIVATE);
-        Set<String> docSet = docPrefs.getStringSet("docs_list", new HashSet<>());
-        allDocs = new ArrayList<>();
-        for (String s : docSet) {
-            Documento d = Documento.fromString(s);
-            if (d != null) allDocs.add(d);
+        } else {
+            tvEmpty.setVisibility(View.GONE);
+            rvHistorial.setVisibility(View.VISIBLE);
         }
     }
 
@@ -90,8 +86,7 @@ public class HistorialActivity extends AppCompatActivity {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_historial, parent, false);
-            return new ViewHolder(view);
+            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_historial, parent, false));
         }
 
         @Override
@@ -102,7 +97,6 @@ public class HistorialActivity extends AppCompatActivity {
             holder.tvDateTime.setText(cita.getFecha());
             holder.tvLocation.setText(cita.getLugar());
 
-            // Relacionar documentos por especialidad
             holder.layoutDocs.removeAllViews();
             boolean hasDocs = false;
             for (Documento d : docs) {
@@ -116,15 +110,9 @@ public class HistorialActivity extends AppCompatActivity {
                 }
             }
 
-            if (hasDocs) {
-                holder.divider.setVisibility(View.VISIBLE);
-                holder.tvDocTitle.setVisibility(View.VISIBLE);
-                holder.layoutDocs.setVisibility(View.VISIBLE);
-            } else {
-                holder.divider.setVisibility(View.GONE);
-                holder.tvDocTitle.setVisibility(View.GONE);
-                holder.layoutDocs.setVisibility(View.GONE);
-            }
+            holder.divider.setVisibility(hasDocs ? View.VISIBLE : View.GONE);
+            holder.tvDocTitle.setVisibility(hasDocs ? View.VISIBLE : View.GONE);
+            holder.layoutDocs.setVisibility(hasDocs ? View.VISIBLE : View.GONE);
         }
 
         @Override
@@ -135,15 +123,15 @@ public class HistorialActivity extends AppCompatActivity {
             LinearLayout layoutDocs;
             View divider;
 
-            public ViewHolder(@NonNull View itemView) {
-                super(itemView);
-                tvSpecialty = itemView.findViewById(R.id.tvHistSpecialty);
-                tvDoctor = itemView.findViewById(R.id.tvHistDoctor);
-                tvDateTime = itemView.findViewById(R.id.tvHistDateTime);
-                tvLocation = itemView.findViewById(R.id.tvHistLocation);
-                tvDocTitle = itemView.findViewById(R.id.tvDocTitle);
-                layoutDocs = itemView.findViewById(R.id.layoutRelatedDocs);
-                divider = itemView.findViewById(R.id.dividerHist);
+            public ViewHolder(@NonNull View v) {
+                super(v);
+                tvSpecialty = v.findViewById(R.id.tvHistSpecialty);
+                tvDoctor = v.findViewById(R.id.tvHistDoctor);
+                tvDateTime = v.findViewById(R.id.tvHistDateTime);
+                tvLocation = v.findViewById(R.id.tvHistLocation);
+                tvDocTitle = v.findViewById(R.id.tvDocTitle);
+                layoutDocs = v.findViewById(R.id.layoutRelatedDocs);
+                divider = v.findViewById(R.id.dividerHist);
             }
         }
     }

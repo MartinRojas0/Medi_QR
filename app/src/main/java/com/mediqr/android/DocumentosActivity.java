@@ -2,9 +2,7 @@ package com.mediqr.android;
 
 import android.app.Activity;
 import android.app.DatePickerDialog;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -31,6 +29,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.mediqr.android.data.MedicalRepository;
+import com.mediqr.android.models.Documento;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,6 +44,10 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * DocumentosActivity: Repositorio documental profesional.
+ * Preparado para conectarse a Cloud Storage vía MedicalRepository.
+ */
 public class DocumentosActivity extends AppCompatActivity {
 
     private RecyclerView rvDocuments, rvSpecialties;
@@ -53,8 +57,7 @@ public class DocumentosActivity extends AppCompatActivity {
     private List<String> specialtyList;
     private DocumentAdapter docAdapter;
     private SpecialtyAdapter specAdapter;
-    private SharedPreferences sharedPreferences;
-    private static final String PREFS_NAME = "MediQR_Docs";
+    private MedicalRepository repository;
     
     private ActivityResultLauncher<Intent> filePickerLauncher;
     private Documento tempDocInfo;
@@ -65,6 +68,8 @@ public class DocumentosActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_documentos);
 
+        repository = MedicalRepository.getInstance(this);
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
@@ -72,7 +77,6 @@ public class DocumentosActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         rvDocuments = findViewById(R.id.rvDocuments);
         rvSpecialties = findViewById(R.id.rvSpecialties);
         tvEmptyState = findViewById(R.id.tvEmptyState);
@@ -84,7 +88,7 @@ public class DocumentosActivity extends AppCompatActivity {
         displayedDocuments = new ArrayList<>();
         specialtyList = new ArrayList<>();
         
-        loadDocuments();
+        loadData();
 
         docAdapter = new DocumentAdapter(displayedDocuments, this::showDeleteConfirmation, this::openDocument);
         rvDocuments.setLayoutManager(new LinearLayoutManager(this));
@@ -109,62 +113,36 @@ public class DocumentosActivity extends AppCompatActivity {
         btnUpload.setOnClickListener(v -> showUploadDialog());
     }
 
-    private void loadDocuments() {
-        Set<String> set = sharedPreferences.getStringSet("docs_list", new HashSet<>());
-        allDocuments.clear();
-        for (String s : set) {
-            Documento d = Documento.fromString(s);
-            if (d != null) allDocuments.add(d);
-        }
+    private void loadData() {
+        allDocuments = repository.getDocuments();
         
-        Collections.sort(allDocuments, (d1, d2) -> {
-            try {
-                String[] p1 = d1.getFecha().split("/");
-                String[] p2 = d2.getFecha().split("/");
-                String s1 = p1[2] + p1[1] + p1[0];
-                String s2 = p2[2] + p2[1] + p2[0];
-                return s2.compareTo(s1);
-            } catch (Exception e) { return 0; }
-        });
-
         // Extraer especialidades únicas
         Set<String> specs = new HashSet<>();
-        for (Documento d : allDocuments) {
-            specs.add(d.getEspecialidad());
-        }
+        for (Documento d : allDocuments) specs.add(d.getEspecialidad());
         specialtyList.clear();
         specialtyList.addAll(specs);
         Collections.sort(specialtyList);
         
-        displayedDocuments.clear();
-        displayedDocuments.addAll(allDocuments);
+        filterBySpecialty(selectedSpecialtyFilter);
     }
 
     private void updateUI() {
-        if (allDocuments.isEmpty()) {
-            tvEmptyState.setVisibility(View.VISIBLE);
-            rvDocuments.setVisibility(View.GONE);
-            rvSpecialties.setVisibility(View.GONE);
-            tvSpecTitle.setVisibility(View.GONE);
-            tvRecentTitle.setVisibility(View.GONE);
-        } else {
-            tvEmptyState.setVisibility(View.GONE);
-            rvDocuments.setVisibility(View.VISIBLE);
-            rvSpecialties.setVisibility(View.VISIBLE);
-            tvSpecTitle.setVisibility(View.VISIBLE);
-            tvRecentTitle.setVisibility(View.VISIBLE);
-            
-            if (selectedSpecialtyFilter != null) {
-                tvRecentTitle.setText("Documentos de " + selectedSpecialtyFilter);
-            } else {
-                tvRecentTitle.setText("Documentos Recientes");
-            }
+        boolean isEmpty = allDocuments.isEmpty();
+        tvEmptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+        rvDocuments.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        rvSpecialties.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        tvSpecTitle.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        tvRecentTitle.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        
+        if (!isEmpty) {
+            tvRecentTitle.setText(selectedSpecialtyFilter != null ? 
+                    "Documentos de " + selectedSpecialtyFilter : "Documentos Recientes");
         }
     }
 
     private void filterBySpecialty(String specialty) {
-        if (specialty.equals(selectedSpecialtyFilter)) {
-            selectedSpecialtyFilter = null; // Quitar filtro
+        if (specialty != null && specialty.equals(selectedSpecialtyFilter)) {
+            selectedSpecialtyFilter = null; 
         } else {
             selectedSpecialtyFilter = specialty;
         }
@@ -174,12 +152,10 @@ public class DocumentosActivity extends AppCompatActivity {
             displayedDocuments.addAll(allDocuments);
         } else {
             for (Documento d : allDocuments) {
-                if (d.getEspecialidad().equals(selectedSpecialtyFilter)) {
-                    displayedDocuments.add(d);
-                }
+                if (d.getEspecialidad().equals(selectedSpecialtyFilter)) displayedDocuments.add(d);
             }
         }
-        docAdapter.notifyDataSetChanged();
+        if (docAdapter != null) docAdapter.notifyDataSetChanged();
         updateUI();
     }
 
@@ -202,8 +178,8 @@ public class DocumentosActivity extends AppCompatActivity {
         String[] types = {"Receta", "Análisis", "Informe", "Vacunación", "Otro"};
         spinnerType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, types));
 
-        Calendar calendar = Calendar.getInstance();
         editDate.setOnClickListener(v -> {
+            Calendar calendar = Calendar.getInstance();
             new DatePickerDialog(this, (dView, year, month, dayOfMonth) -> {
                 String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month + 1, year);
                 editDate.setText(date);
@@ -220,16 +196,9 @@ public class DocumentosActivity extends AppCompatActivity {
                 return;
             }
 
-            tempDocInfo = new Documento(
-                    UUID.randomUUID().toString(),
-                    "",
-                    date,
-                    "",
-                    spinnerSpecialty.getSelectedItem().toString(),
-                    doctor,
-                    editLocation.getText().toString().trim(),
-                    spinnerType.getSelectedItem().toString()
-            );
+            tempDocInfo = new Documento(UUID.randomUUID().toString(), "", date, "",
+                    spinnerSpecialty.getSelectedItem().toString(), doctor,
+                    editLocation.getText().toString().trim(), spinnerType.getSelectedItem().toString());
 
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("*/*");
@@ -258,27 +227,17 @@ public class DocumentosActivity extends AppCompatActivity {
             outputStream.close();
 
             if (tempDocInfo != null) {
-                Documento newDoc = new Documento(
-                        tempDocInfo.getId(),
-                        fileName,
-                        tempDocInfo.getFecha(),
-                        internalFile.getAbsolutePath(),
-                        tempDocInfo.getEspecialidad(),
-                        tempDocInfo.getDoctor(),
-                        tempDocInfo.getLugar(),
-                        tempDocInfo.getTipo()
-                );
-                allDocuments.add(0, newDoc);
-                saveDocuments();
-                loadDocuments(); // Recargar para actualizar especialidades
+                Documento newDoc = new Documento(tempDocInfo.getId(), fileName, tempDocInfo.getFecha(),
+                        internalFile.getAbsolutePath(), tempDocInfo.getEspecialidad(),
+                        tempDocInfo.getDoctor(), tempDocInfo.getLugar(), tempDocInfo.getTipo());
+                
+                repository.addDocument(newDoc);
+                loadData();
                 specAdapter.notifyDataSetChanged();
-                filterBySpecialty(null); // Reset filter to show the new one
                 Toast.makeText(this, "Documento subido con éxito", Toast.LENGTH_SHORT).show();
             }
-
         } catch (Exception e) {
             Toast.makeText(this, "Error al guardar archivo", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
         }
     }
 
@@ -322,94 +281,53 @@ public class DocumentosActivity extends AppCompatActivity {
         return result;
     }
 
-    private void saveDocuments() {
-        Set<String> set = new HashSet<>();
-        for (Documento d : allDocuments) {
-            set.add(d.toString());
-        }
-        sharedPreferences.edit().putStringSet("docs_list", set).apply();
-    }
-
     private void showDeleteConfirmation(int position) {
         new AlertDialog.Builder(this)
                 .setTitle("Eliminar documento")
-                .setMessage("¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.")
-                .setPositiveButton("Eliminar", (dialog, which) -> deleteDocument(position))
-                .setNegativeButton("Cancelar", null)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+                .setMessage("¿Estás seguro de eliminar este documento?")
+                .setPositiveButton("Eliminar", (dialog, which) -> {
+                    repository.deleteDocument(displayedDocuments.get(position));
+                    loadData();
+                    specAdapter.notifyDataSetChanged();
+                    Toast.makeText(this, "Documento eliminado", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancelar", null).show();
     }
 
-    private void deleteDocument(int position) {
-        Documento doc = displayedDocuments.get(position);
-        File file = new File(doc.getRuta());
-        if (file.exists()) file.delete();
-        
-        allDocuments.remove(doc);
-        saveDocuments();
-        loadDocuments();
-        specAdapter.notifyDataSetChanged();
-        filterBySpecialty(selectedSpecialtyFilter);
-        Toast.makeText(this, "Documento eliminado", Toast.LENGTH_SHORT).show();
-    }
-
-    // ADAPTERS
+    // --- ADAPTERS ---
     private static class SpecialtyAdapter extends RecyclerView.Adapter<SpecialtyAdapter.ViewHolder> {
         private List<String> list;
         private OnSpecClickListener listener;
-
         public interface OnSpecClickListener { void onClick(String spec); }
-
         public SpecialtyAdapter(List<String> list, OnSpecClickListener listener) {
-            this.list = list;
-            this.listener = listener;
+            this.list = list; this.listener = listener;
         }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_especialidad, parent, false);
-            return new ViewHolder(v);
+        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_especialidad, parent, false));
         }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        @Override public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             String spec = list.get(position);
             holder.tvName.setText(spec);
             holder.itemView.setOnClickListener(v -> listener.onClick(spec));
         }
-
-        @Override
-        public int getItemCount() { return list.size(); }
-
+        @Override public int getItemCount() { return list.size(); }
         static class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvName;
-            public ViewHolder(@NonNull View v) {
-                super(v);
-                tvName = v.findViewById(R.id.tvSpecName);
-            }
+            public ViewHolder(@NonNull View v) { super(v); tvName = v.findViewById(R.id.tvSpecName); }
         }
     }
 
     private static class DocumentAdapter extends RecyclerView.Adapter<DocumentAdapter.ViewHolder> {
         private List<Documento> docs;
         private OnActionCallback deleteListener, openListener;
-
         public interface OnActionCallback { void onAction(int pos); }
-
         public DocumentAdapter(List<Documento> docs, OnActionCallback del, OnActionCallback open) {
             this.docs = docs; this.deleteListener = del; this.openListener = open;
         }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_documento, parent, false);
-            return new ViewHolder(view);
+        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_documento, parent, false));
         }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        @Override public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Documento doc = docs.get(position);
             holder.tvName.setText(doc.getTipo() + " - " + doc.getEspecialidad());
             holder.tvDate.setText(doc.getFecha() + " | Dr. " + doc.getDoctor());
@@ -418,18 +336,12 @@ public class DocumentosActivity extends AppCompatActivity {
             holder.btnDelete.setOnClickListener(v -> deleteListener.onAction(position));
             holder.itemView.setOnClickListener(v -> openListener.onAction(position));
         }
-
-        @Override
-        public int getItemCount() { return docs.size(); }
-
+        @Override public int getItemCount() { return docs.size(); }
         static class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvName, tvDate; ImageView ivIcon; ImageButton btnDelete;
             public ViewHolder(@NonNull View v) {
-                super(v);
-                tvName = v.findViewById(R.id.tvDocName);
-                tvDate = v.findViewById(R.id.tvDocDate);
-                ivIcon = v.findViewById(R.id.ivDocIcon);
-                btnDelete = v.findViewById(R.id.btnDeleteDoc);
+                super(v); tvName = v.findViewById(R.id.tvDocName); tvDate = v.findViewById(R.id.tvDocDate);
+                ivIcon = v.findViewById(R.id.ivDocIcon); btnDelete = v.findViewById(R.id.btnDeleteDoc);
             }
         }
     }

@@ -4,7 +4,7 @@
             "outputFile": "com.mediqr.android.app-mergeDebugResources-30:/values-he/values-he.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\MARTIN\\.gradle\\caches\\8.13\\transforms\\90661464b8afeb475e0750e6a2b3f8c6\\transformed\\jetified-zxing-android-embedded-4.3.0\\res\\values-he\\values-he.xml",
+                    "source": "C:\\Users\\MARTIN\\.gradle\\caches\\9.4.1\\transforms\\2e637c34132d8064271f62df2c3bc2cc\\transformed\\jetified-zxing-android-embedded-4.3.0\\res\\values-he\\values-he.xml",
                     "from": {
                         "startLines": "2,3,4,5",
                         "startColumns": "4,4,4,4",

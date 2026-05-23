@@ -1,7 +1,5 @@
 package com.mediqr.android;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.util.Patterns;
@@ -9,25 +7,32 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.textfield.TextInputEditText;
+import com.mediqr.android.data.MedicalRepository;
+import com.mediqr.android.models.Cita;
+import com.mediqr.android.models.PatientProfile;
 
+import java.util.List;
+
+/**
+ * PerfilFragment: Gestión de identidad y exportación.
+ * Centralizado en PatientProfile model.
+ */
 public class PerfilFragment extends Fragment {
 
     private TextView nameText, ageText, dniText, emailText, phoneText, addressText, profileNameHeader;
-    private SharedPreferences sharedPreferences;
-    private static final String PREFS_NAME = "MediQR_Prefs";
+    private MedicalRepository repository;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_perfil, container, false);
 
-        sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        repository = MedicalRepository.getInstance(requireContext());
 
         profileNameHeader = view.findViewById(R.id.profileNameHeader);
         nameText = view.findViewById(R.id.nameText);
@@ -42,146 +47,118 @@ public class PerfilFragment extends Fragment {
         loadProfileData();
 
         editProfileButton.setOnClickListener(v -> showEditProfileDialog());
-        btnExportPDF.setOnClickListener(v -> {
-            String fullName = sharedPreferences.getString("user_name", "Martin Rojas");
-            String dni = sharedPreferences.getString("user_dni", "12.345.678");
-            
-            SharedPreferences saludPrefs = requireActivity().getSharedPreferences("MediQR_Salud", Context.MODE_PRIVATE);
-            String allergies = saludPrefs.getString("user_allergies", "Ninguna conocida");
-            String blood = saludPrefs.getString("user_blood_type", "A+ (Positivo)");
-            String chronic = saludPrefs.getString("user_chronic", "Hipertensión leve");
-            String meds = saludPrefs.getString("user_meds", "Enalapril 10mg / día");
-
-            String report = "📄 HISTORIAL MÉDICO - MEDIQR\n\n" +
-                    "👤 PACIENTE:\n" +
-                    "Nombre: " + fullName + "\n" +
-                    "DNI: " + dni + "\n\n" +
-                    "🏥 DATOS DE SALUD:\n" +
-                    "Tipo Sangre: " + blood + "\n" +
-                    "Alergias: " + allergies + "\n" +
-                    "Condiciones: " + chronic + "\n" +
-                    "Medicación: " + meds + "\n\n" +
-                    "✅ Estado: Exportado correctamente";
-
-            AlertDialog.Builder reportBuilder = new AlertDialog.Builder(requireContext());
-            reportBuilder.setTitle("Reporte Generado");
-            reportBuilder.setMessage(report);
-            reportBuilder.setPositiveButton("Cerrar", null);
-            reportBuilder.show();
-        });
+        btnExportPDF.setOnClickListener(v -> exportMedicalRecord());
 
         return view;
     }
 
     private void loadProfileData() {
-        String fullName = sharedPreferences.getString("user_name", "Martin Rojas");
-        String age = sharedPreferences.getString("user_age", "20 años");
-        String dni = sharedPreferences.getString("user_dni", "12.345.678");
-        String email = sharedPreferences.getString("user_email", "martin.rojas@email.com");
-        String phone = sharedPreferences.getString("user_phone", "+54 9 11 1234-5678");
-        
-        // Cargar dirección compuesta
-        String street = sharedPreferences.getString("user_street", "Av. Siempreviva");
-        String district = sharedPreferences.getString("user_district", "Springfield");
-        String houseNum = sharedPreferences.getString("user_houseNum", "742");
-        String fullAddress = street + " " + houseNum + ", " + district;
-
-        nameText.setText(fullName);
-        profileNameHeader.setText(fullName);
-        ageText.setText(age);
-        dniText.setText(dni);
-        emailText.setText(email);
-        phoneText.setText(phone);
-        addressText.setText(fullAddress);
+        PatientProfile profile = repository.getProfile();
+        nameText.setText(profile.getFullName());
+        profileNameHeader.setText(profile.getFullName());
+        ageText.setText(profile.getAge() + " años");
+        dniText.setText(profile.getDni());
+        emailText.setText(profile.getEmail());
+        phoneText.setText(profile.getPhone());
+        addressText.setText(profile.getFullAddress());
     }
 
     private void showEditProfileDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_profile, null);
-        builder.setView(dialogView);
+        View view = getLayoutInflater().inflate(R.layout.dialog_edit_profile, null);
+        builder.setView(view);
 
-        TextInputEditText editFirstName = dialogView.findViewById(R.id.editFirstName);
-        TextInputEditText editLastName = dialogView.findViewById(R.id.editLastName);
-        TextInputEditText editAge = dialogView.findViewById(R.id.editAge);
-        TextInputEditText editDNI = dialogView.findViewById(R.id.editDNI);
-        TextInputEditText editEmail = dialogView.findViewById(R.id.editEmail);
-        TextInputEditText editPhone = dialogView.findViewById(R.id.editPhone);
-        TextInputEditText editStreet = dialogView.findViewById(R.id.editStreet);
-        TextInputEditText editDistrict = dialogView.findViewById(R.id.editDistrict);
-        TextInputEditText editHouseNum = dialogView.findViewById(R.id.editHouseNum);
+        TextInputEditText editFirst = view.findViewById(R.id.editFirstName);
+        TextInputEditText editLast = view.findViewById(R.id.editLastName);
+        TextInputEditText editAge = view.findViewById(R.id.editAge);
+        TextInputEditText editDNI = view.findViewById(R.id.editDNI);
+        TextInputEditText editEmail = view.findViewById(R.id.editEmail);
+        TextInputEditText editPhone = view.findViewById(R.id.editPhone);
+        TextInputEditText editStreet = view.findViewById(R.id.editStreet);
+        TextInputEditText editDistrict = view.findViewById(R.id.editDistrict);
+        TextInputEditText editHouse = view.findViewById(R.id.editHouseNum);
         
-        Button btnSave = dialogView.findViewById(R.id.btnSaveProfile);
-        Button btnCancel = dialogView.findViewById(R.id.btnCancelEdit);
+        PatientProfile current = repository.getProfile();
+        editFirst.setText(current.getFirstName());
+        editLast.setText(current.getLastName());
+        editAge.setText(String.valueOf(current.getAge()));
+        editDNI.setText(current.getDni());
+        editEmail.setText(current.getEmail());
+        editPhone.setText(current.getPhone());
+        editStreet.setText(current.getStreet());
+        editDistrict.setText(current.getDistrict());
+        editHouse.setText(current.getHouseNum());
 
-        // Filtro para permitir solo letras y espacios
+        // Filter: Letters only for names
         InputFilter letterFilter = (source, start, end, dest, dstart, dend) -> {
             for (int i = start; i < end; i++) {
-                if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) {
-                    return "";
-                }
+                if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) return "";
             }
             return null;
         };
-        editFirstName.setFilters(new InputFilter[]{letterFilter});
-        editLastName.setFilters(new InputFilter[]{letterFilter});
-
-        // Pre-cargar datos actuales
-        String currentFullName = sharedPreferences.getString("user_name", "Martin Rojas");
-        String[] parts = currentFullName.split(" ", 2);
-        if (parts.length > 0) editFirstName.setText(parts[0]);
-        if (parts.length > 1) editLastName.setText(parts[1]);
-
-        editAge.setText(sharedPreferences.getString("user_age", "20").replace(" años", ""));
-        editDNI.setText(sharedPreferences.getString("user_dni", "12.345.678"));
-        editEmail.setText(sharedPreferences.getString("user_email", "martin.rojas@email.com"));
-        editPhone.setText(sharedPreferences.getString("user_phone", "123456789"));
-        editStreet.setText(sharedPreferences.getString("user_street", "Av. Siempreviva"));
-        editDistrict.setText(sharedPreferences.getString("user_district", "Springfield"));
-        editHouseNum.setText(sharedPreferences.getString("user_houseNum", "742"));
+        editFirst.setFilters(new InputFilter[]{letterFilter});
+        editLast.setFilters(new InputFilter[]{letterFilter});
 
         AlertDialog dialog = builder.create();
 
-        btnSave.setOnClickListener(v -> {
-            String firstName = editFirstName.getText().toString().trim();
-            String lastName = editLastName.getText().toString().trim();
-            String email = editEmail.getText().toString().trim();
-            String phone = editPhone.getText().toString().trim();
-            String ageVal = editAge.getText().toString().trim();
-
-            // Validaciones fuertes
-            if (firstName.isEmpty() || lastName.isEmpty()) {
-                Toast.makeText(getContext(), "Nombre y Apellido son obligatorios", Toast.LENGTH_SHORT).show();
+        view.findViewById(R.id.btnSaveProfile).setOnClickListener(v -> {
+            if (editFirst.getText().toString().isEmpty() || editLast.getText().toString().isEmpty()) {
+                Toast.makeText(getContext(), "Nombres obligatorios", Toast.LENGTH_SHORT).show();
                 return;
             }
             
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                Toast.makeText(getContext(), "Formato de correo inválido", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            
-            if (phone.length() < 9) {
-                Toast.makeText(getContext(), "El teléfono debe tener al menos 9 dígitos", Toast.LENGTH_SHORT).show();
+            if (!Patterns.EMAIL_ADDRESS.matcher(editEmail.getText()).matches()) {
+                Toast.makeText(getContext(), "Email inválido", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Guardar en SharedPreferences
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("user_name", firstName + " " + lastName);
-            editor.putString("user_age", ageVal + " años");
-            editor.putString("user_dni", editDNI.getText().toString().trim());
-            editor.putString("user_email", email);
-            editor.putString("user_phone", phone);
-            editor.putString("user_street", editStreet.getText().toString().trim());
-            editor.putString("user_district", editDistrict.getText().toString().trim());
-            editor.putString("user_houseNum", editHouseNum.getText().toString().trim());
-            editor.apply();
+            PatientProfile newProfile = repository.getProfile();
+            newProfile.setFirstName(editFirst.getText().toString().trim());
+            newProfile.setLastName(editLast.getText().toString().trim());
+            newProfile.setAge(Integer.parseInt(editAge.getText().toString()));
+            newProfile.setDni(editDNI.getText().toString().trim());
+            newProfile.setEmail(editEmail.getText().toString().trim());
+            newProfile.setPhone(editPhone.getText().toString().trim());
+            newProfile.setStreet(editStreet.getText().toString().trim());
+            newProfile.setDistrict(editDistrict.getText().toString().trim());
+            newProfile.setHouseNum(editHouse.getText().toString().trim());
 
+            repository.saveProfile(newProfile);
             loadProfileData();
-            Toast.makeText(getContext(), "Datos guardados correctamente", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        view.findViewById(R.id.btnCancelEdit).setOnClickListener(v -> dialog.dismiss());
         dialog.show();
+    }
+
+    private void exportMedicalRecord() {
+        PatientProfile p = repository.getProfile();
+        List<Cita> history = repository.getAppointments(false);
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("📄 HISTORIAL MÉDICO - MEDIQR\n\n");
+        sb.append("👤 PACIENTE: ").append(p.getFullName()).append("\n");
+        sb.append("DNI: ").append(p.getDni()).append("\n");
+        sb.append("SANGRE: ").append(p.getBloodType()).append("\n\n");
+        
+        sb.append("🏥 ÚLTIMAS CONSULTAS:\n");
+        int count = 0;
+        for (Cita c : history) {
+            if (c.isAtendida()) {
+                sb.append("- ").append(c.getFecha()).append(": ").append(c.getEspecialidad()).append(" (Dr. ").append(c.getDoctor()).append(")\n");
+                count++;
+                if (count >= 3) break;
+            }
+        }
+        
+        if (count == 0) sb.append("- No hay consultas registradas.\n");
+        
+        sb.append("\n✅ Estado: Exportado correctamente");
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Reporte Generado")
+                .setMessage(sb.toString())
+                .setPositiveButton("Cerrar", null).show();
     }
 }

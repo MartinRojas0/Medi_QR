@@ -4,7 +4,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -17,22 +16,26 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+
 import com.google.android.material.card.MaterialCardView;
 import com.google.zxing.BarcodeFormat;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
+import com.mediqr.android.data.MedicalRepository;
+import com.mediqr.android.models.Cita;
+import com.mediqr.android.models.PatientProfile;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * InicioFragment: Dashboard central.
+ * Preparado para conexión dinámica vía MedicalRepository.
+ */
 public class InicioFragment extends Fragment {
 
     private TextView lastConsultationText, nextAppointmentText;
     private ImageView qrImageView;
-    private Button btnCopyQR;
-    private SharedPreferences sharedPrefs;
+    private MedicalRepository repository;
     private String lastGeneratedQRContent = "";
 
     @Override
@@ -40,11 +43,11 @@ public class InicioFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_inicio, container, false);
 
-        sharedPrefs = requireActivity().getSharedPreferences("MediQR_Prefs", Context.MODE_PRIVATE);
+        repository = MedicalRepository.getInstance(requireContext());
 
         TextView greetingText = view.findViewById(R.id.greetingText);
         qrImageView = view.findViewById(R.id.qrImageView);
-        btnCopyQR = view.findViewById(R.id.btnCopyQRInfo);
+        Button btnCopyQR = view.findViewById(R.id.btnCopyQRInfo);
         Button sosButton = view.findViewById(R.id.sosButton);
         lastConsultationText = view.findViewById(R.id.lastConsultationText);
         nextAppointmentText = view.findViewById(R.id.nextAppointmentText);
@@ -55,14 +58,14 @@ public class InicioFragment extends Fragment {
         MaterialCardView appointmentsLayout = view.findViewById(R.id.appointmentsLayout);
         MaterialCardView documentsLayout = view.findViewById(R.id.documentsLayout);
 
-        // Cargar nombre (Solo el primer nombre)
-        String fullName = sharedPrefs.getString("user_name", "Martin Rojas");
-        String firstName = fullName.split(" ")[0];
-        greetingText.setText("Hola " + firstName + "!!!");
+        // UI Initialization from Repository
+        PatientProfile profile = repository.getProfile();
+        greetingText.setText("Hola " + profile.getFirstName() + "!!!");
 
-        generateEmergencyQR(fullName);
+        generateEmergencyQR(profile);
         updateAppointmentsSummary();
 
+        // Listeners
         sosButton.setOnClickListener(v -> showSOSDialog());
 
         btnCopyQR.setOnClickListener(v -> {
@@ -74,54 +77,38 @@ public class InicioFragment extends Fragment {
             }
         });
 
-        // Navegación a módulos
-        historyLayout.setOnClickListener(v -> {
-            Intent intent = new Intent(getContext(), HistorialActivity.class);
-            startActivity(intent);
-        });
-
-        medicationLayout.setOnClickListener(v -> {
-            if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).navigateToTab(R.id.navigation_health);
-            }
-        });
-
-        appointmentsLayout.setOnClickListener(v -> {
-            if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).navigateToTab(R.id.navigation_appointments);
-            }
-        });
-
-        documentsLayout.setOnClickListener(v -> {
-            Intent intent = new Intent(getContext(), DocumentosActivity.class);
-            startActivity(intent);
-        });
+        historyLayout.setOnClickListener(v -> startActivity(new Intent(getContext(), HistorialActivity.class)));
+        
+        medicationLayout.setOnClickListener(v -> navigateToTab(R.id.navigation_health));
+        appointmentsLayout.setOnClickListener(v -> navigateToTab(R.id.navigation_appointments));
+        
+        documentsLayout.setOnClickListener(v -> startActivity(new Intent(getContext(), DocumentosActivity.class)));
 
         return view;
     }
 
-    private void generateEmergencyQR(String fullName) {
-        String dni = sharedPrefs.getString("user_dni", "12.345.678");
-        String age = sharedPrefs.getString("user_age", "20 años");
-        
-        SharedPreferences saludPrefs = requireActivity().getSharedPreferences("MediQR_Salud", Context.MODE_PRIVATE);
-        String blood = saludPrefs.getString("user_blood_type", "A+");
-        String allergies = saludPrefs.getString("user_allergies", "Ninguna");
+    private void navigateToTab(int tabId) {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).navigateToTab(tabId);
+        }
+    }
 
-        // Formato de texto claro y profesional para cualquier escáner
-        lastGeneratedQRContent = "MEDIQR - FICHA DE EMERGENCIA\n" +
+    private void generateEmergencyQR(PatientProfile profile) {
+        String patientId = "martin" + profile.getDni().substring(profile.getDni().length() - 3);
+        String publicUrl = "https://mediqr.app/paciente/" + patientId;
+
+        lastGeneratedQRContent = "MEDIQR - EMERGENCIA\n" +
+                "URL: " + publicUrl + "\n" +
                 "---------------------------\n" +
-                "PACIENTE: " + fullName + "\n" +
-                "DNI: " + dni + "\n" +
-                "EDAD: " + age + "\n" +
-                "SANGRE: " + blood + "\n" +
-                "ALERGIAS: " + allergies + "\n" +
+                "PACIENTE: " + profile.getFullName() + "\n" +
+                "DNI: " + profile.getDni() + "\n" +
+                "SANGRE: " + profile.getBloodType() + "\n" +
+                "ALERGIAS: " + profile.getAllergies() + "\n" +
                 "---------------------------\n" +
                 "Escaneado desde MediQR App";
 
         try {
             BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
-            // Aumentamos resolución del Bitmap para mejor lectura
             Bitmap bitmap = barcodeEncoder.encodeBitmap(lastGeneratedQRContent, BarcodeFormat.QR_CODE, 800, 800);
             qrImageView.setImageBitmap(bitmap);
         } catch (Exception e) {
@@ -130,43 +117,37 @@ public class InicioFragment extends Fragment {
     }
 
     private void updateAppointmentsSummary() {
-        SharedPreferences citaPrefs = requireActivity().getSharedPreferences("MediQR_Citas", Context.MODE_PRIVATE);
-        Set<String> set = citaPrefs.getStringSet("citas_set", new HashSet<>());
+        List<Cita> allCitas = repository.getAppointments(false);
         
-        List<Cita> upcoming = new ArrayList<>();
-        List<Cita> attended = new ArrayList<>();
+        Cita next = null;
+        Cita last = null;
         
-        for (String s : set) {
-            Cita c = Cita.fromString(s);
-            if (c != null) {
-                if (c.isAtendida()) attended.add(c);
-                else upcoming.add(c);
+        for (Cita c : allCitas) {
+            if (!c.isAtendida()) {
+                if (next == null) next = c; // Since it's sorted by date
+            } else {
+                last = c; // Will end up with the most recent attended because of sorting and loop
             }
         }
         
-        if (!upcoming.isEmpty()) {
-            Collections.sort(upcoming, Cita.DateComparator);
-            Cita next = upcoming.get(0);
+        if (next != null) {
             nextAppointmentText.setText("Próxima cita: " + next.getFecha() + " - " + next.getEspecialidad());
         } else {
             nextAppointmentText.setText("No hay citas programadas");
         }
         
-        if (!attended.isEmpty()) {
-            Collections.sort(attended, Cita.DateComparator);
-            Collections.reverse(attended);
-            Cita last = attended.get(0);
+        if (last != null) {
             lastConsultationText.setText("Última: " + last.getFecha() + " - Dr. " + last.getDoctor());
         } else {
-            lastConsultationText.setText("Sin consultas previas registradas");
+            lastConsultationText.setText("Sin consultas previas");
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        String fullName = sharedPrefs.getString("user_name", "Martin Rojas");
-        generateEmergencyQR(fullName);
+        PatientProfile profile = repository.getProfile();
+        generateEmergencyQR(profile);
         updateAppointmentsSummary();
     }
 
