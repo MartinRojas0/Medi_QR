@@ -11,6 +11,11 @@ public class Cita implements Serializable {
     private String hora;
     private String lugar;
     private boolean atendida;
+    
+    // New Medical Fields for History
+    private String diagnostico;
+    private String tratamiento;
+    private String observaciones;
 
     public Cita(String id, String especialidad, String doctor, String fecha, String hora, String lugar, boolean atendida) {
         this.id = id;
@@ -20,6 +25,11 @@ public class Cita implements Serializable {
         this.hora = hora;
         this.lugar = lugar;
         this.atendida = atendida;
+        
+        // Mock default medical content
+        this.diagnostico = "Consulta de control rutinario. Paciente presenta estado general estable.";
+        this.tratamiento = "Continuar con medicación habitual. Dieta baja en sodio.";
+        this.observaciones = "Revisión en 6 meses.";
     }
 
     // Getters and Setters
@@ -31,17 +41,28 @@ public class Cita implements Serializable {
     public String getLugar() { return lugar; }
     public boolean isAtendida() { return atendida; }
     public void setAtendida(boolean atendida) { this.atendida = atendida; }
+    
+    public String getDiagnostico() { return diagnostico; }
+    public void setDiagnostico(String diagnostico) { this.diagnostico = diagnostico; }
+    public String getTratamiento() { return tratamiento; }
+    public void setTratamiento(String tratamiento) { this.tratamiento = tratamiento; }
+    public String getObservaciones() { return observaciones; }
+    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
 
     @Override
     public String toString() {
-        return id + "|" + especialidad + "|" + doctor + "|" + fecha + "|" + hora + "|" + lugar + "|" + atendida;
+        return id + "|" + especialidad + "|" + doctor + "|" + fecha + "|" + hora + "|" + lugar + "|" + atendida + "|" + diagnostico + "|" + tratamiento + "|" + observaciones;
     }
 
     public static Cita fromString(String data) {
         String[] parts = data.split("\\|", -1);
-        if (parts.length >= 6) {
-            boolean atendida = parts.length > 6 && Boolean.parseBoolean(parts[6]);
-            return new Cita(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], atendida);
+        if (parts.length >= 7) {
+            boolean atendida = Boolean.parseBoolean(parts[6]);
+            Cita c = new Cita(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], atendida);
+            if (parts.length > 7) c.setDiagnostico(parts[7]);
+            if (parts.length > 8) c.setTratamiento(parts[8]);
+            if (parts.length > 9) c.setObservaciones(parts[9]);
+            return c;
         }
         return null;
     }

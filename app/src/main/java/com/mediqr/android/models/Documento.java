@@ -11,6 +11,7 @@ public class Documento implements Serializable {
     private String doctor;
     private String lugar;
     private String tipo;
+    private String linkedCitaId; // Relación directa con una consulta
 
     public Documento(String id, String nombre, String fecha, String ruta, String especialidad, String doctor, String lugar, String tipo) {
         this.id = id;
@@ -21,8 +22,10 @@ public class Documento implements Serializable {
         this.doctor = doctor;
         this.lugar = lugar;
         this.tipo = tipo;
+        this.linkedCitaId = "";
     }
 
+    // Getters and Setters
     public String getId() { return id; }
     public String getNombre() { return nombre; }
     public String getFecha() { return fecha; }
@@ -31,24 +34,20 @@ public class Documento implements Serializable {
     public String getDoctor() { return doctor; }
     public String getLugar() { return lugar; }
     public String getTipo() { return tipo; }
+    public String getLinkedCitaId() { return linkedCitaId; }
+    public void setLinkedCitaId(String linkedCitaId) { this.linkedCitaId = linkedCitaId; }
 
     @Override
     public String toString() {
-        return id + "|" + nombre + "|" + fecha + "|" + ruta + "|" + especialidad + "|" + doctor + "|" + lugar + "|" + tipo;
+        return id + "|" + nombre + "|" + fecha + "|" + ruta + "|" + especialidad + "|" + doctor + "|" + lugar + "|" + tipo + "|" + linkedCitaId;
     }
 
     public static Documento fromString(String data) {
         String[] parts = data.split("\\|", -1);
-        if (parts.length >= 4) {
-            String id = parts[0];
-            String nombre = parts[1];
-            String fecha = parts[2];
-            String ruta = parts[3];
-            String especialidad = parts.length > 4 ? parts[4] : "General";
-            String doctor = parts.length > 5 ? parts[5] : "No especificado";
-            String lugar = parts.length > 6 ? parts[6] : "No especificado";
-            String tipo = parts.length > 7 ? parts[7] : "Otro";
-            return new Documento(id, nombre, fecha, ruta, especialidad, doctor, lugar, tipo);
+        if (parts.length >= 8) {
+            Documento d = new Documento(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7]);
+            if (parts.length > 8) d.setLinkedCitaId(parts[8]);
+            return d;
         }
         return null;
     }

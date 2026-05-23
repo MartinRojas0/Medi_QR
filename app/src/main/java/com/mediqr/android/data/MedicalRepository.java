@@ -12,9 +12,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * MedicalRepository: Sube de nivel la gestión de datos.
- * Actualmente usa SharedPreferences para simular persistencia,
- * pero está diseñada para integrarse con Retrofit/Firebase fácilmente.
+ * MedicalRepository: Brain of the application data.
+ * Safe parsing and centralized management.
  */
 public class MedicalRepository {
     private static MedicalRepository instance;
@@ -40,18 +39,32 @@ public class MedicalRepository {
     // --- PATIENT PROFILE ---
     public PatientProfile getProfile() {
         PatientProfile profile = new PatientProfile();
-        profile.setFirstName(userPrefs.getString("user_name", "Martin Rojas").split(" ")[0]);
-        profile.setLastName(userPrefs.getString("user_name", "Martin Rojas").contains(" ") ? 
-                userPrefs.getString("user_name", "Martin Rojas").split(" ", 2)[1] : "");
+        String name = userPrefs.getString("user_name", "Martin Rojas");
+        
+        if (name != null && name.contains(" ")) {
+            String[] parts = name.split(" ", 2);
+            profile.setFirstName(parts[0]);
+            profile.setLastName(parts[1]);
+        } else {
+            profile.setFirstName(name);
+            profile.setLastName("");
+        }
+
         profile.setDni(userPrefs.getString("user_dni", "12.345.678"));
-        profile.setAge(Integer.parseInt(userPrefs.getString("user_age", "20").replace(" años", "")));
+        
+        String ageStr = userPrefs.getString("user_age", "20").replace(" años", "").trim();
+        try {
+            profile.setAge(Integer.parseInt(ageStr));
+        } catch (NumberFormatException e) {
+            profile.setAge(20);
+        }
+
         profile.setEmail(userPrefs.getString("user_email", "martin.rojas@email.com"));
         profile.setPhone(userPrefs.getString("user_phone", "987654321"));
         profile.setStreet(userPrefs.getString("user_street", "Av. Principal"));
         profile.setDistrict(userPrefs.getString("user_district", "Lima"));
         profile.setHouseNum(userPrefs.getString("user_houseNum", "123"));
         
-        // Health
         profile.setBloodType(saludPrefs.getString("user_blood_type", "O+"));
         profile.setAllergies(saludPrefs.getString("user_allergies", "Ninguna conocida"));
         profile.setChronicConditions(saludPrefs.getString("user_chronic", "Ninguna"));
@@ -86,9 +99,11 @@ public class MedicalRepository {
     public List<Documento> getDocuments() {
         Set<String> set = docsPrefs.getStringSet("docs_list", new HashSet<>());
         List<Documento> list = new ArrayList<>();
-        for (String s : set) {
-            Documento d = Documento.fromString(s);
-            if (d != null) list.add(d);
+        if (set != null) {
+            for (String s : set) {
+                Documento d = Documento.fromString(s);
+                if (d != null) list.add(d);
+            }
         }
         Collections.sort(list, (d1, d2) -> {
             try {
@@ -129,11 +144,13 @@ public class MedicalRepository {
     public List<Cita> getAppointments(boolean onlyUpcoming) {
         Set<String> set = citasPrefs.getStringSet("citas_set", new HashSet<>());
         List<Cita> list = new ArrayList<>();
-        for (String s : set) {
-            Cita c = Cita.fromString(s);
-            if (c != null) {
-                if (onlyUpcoming && !c.isAtendida()) list.add(c);
-                else if (!onlyUpcoming) list.add(c);
+        if (set != null) {
+            for (String s : set) {
+                Cita c = Cita.fromString(s);
+                if (c != null) {
+                    if (onlyUpcoming && !c.isAtendida()) list.add(c);
+                    else if (!onlyUpcoming) list.add(c);
+                }
             }
         }
         Collections.sort(list, Cita.DateComparator);
@@ -144,13 +161,15 @@ public class MedicalRepository {
         Set<String> set = citasPrefs.getStringSet("citas_set", new HashSet<>());
         Set<String> newSet = new HashSet<>();
         boolean found = false;
-        for (String s : set) {
-            Cita existing = Cita.fromString(s);
-            if (existing != null && existing.getId().equals(cita.getId())) {
-                newSet.add(cita.toString());
-                found = true;
-            } else {
-                newSet.add(s);
+        if (set != null) {
+            for (String s : set) {
+                Cita existing = Cita.fromString(s);
+                if (existing != null && existing.getId().equals(cita.getId())) {
+                    newSet.add(cita.toString());
+                    found = true;
+                } else {
+                    newSet.add(s);
+                }
             }
         }
         if (!found) newSet.add(cita.toString());
@@ -160,10 +179,12 @@ public class MedicalRepository {
     public void deleteAppointment(String id) {
         Set<String> set = citasPrefs.getStringSet("citas_set", new HashSet<>());
         Set<String> newSet = new HashSet<>();
-        for (String s : set) {
-            Cita existing = Cita.fromString(s);
-            if (existing != null && !existing.getId().equals(id)) {
-                newSet.add(s);
+        if (set != null) {
+            for (String s : set) {
+                Cita existing = Cita.fromString(s);
+                if (existing != null && !existing.getId().equals(id)) {
+                    newSet.add(s);
+                }
             }
         }
         citasPrefs.edit().putStringSet("citas_set", newSet).apply();

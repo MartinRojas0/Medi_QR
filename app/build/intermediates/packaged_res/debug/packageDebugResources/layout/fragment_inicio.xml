@@ -1,295 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/homeScrollView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/greetingText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30sp"
-            android:textColor="@color/primary"
-            android:textStyle="bold"
-            android:layout_marginBottom="24dp"
-            android:text="¡Hola, Bienvenido!" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="@style/MedicalCard"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            app:cardBackgroundColor="@color/card_background"
-            app:strokeWidth="0dp">
+            android:orientation="vertical"
+            android:padding="24dp">
 
+            <!-- Header Section (Simplified) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="center"
-                android:padding="24dp">
+                android:layout_marginBottom="24dp">
 
-                <ImageView
-                    android:id="@+id/qrImageView"
-                    android:layout_width="220dp"
-                    android:layout_height="220dp"
-                    android:src="@drawable/ic_qr_placeholder"
-                    android:background="@drawable/qr_background"
-                    android:padding="12dp" />
+                <TextView
+                    android:id="@+id/greetingText"
+                    style="@style/Heading1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hola Martin!!! 👋" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tu Código QR de Emergencia"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary"
-                    android:layout_marginTop="16dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Escanea para ver información vital"
-                    android:textSize="14sp"
+                    android:text="Tu ecosistema médico está al día"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginTop="4dp" />
-
-                <Button
-                    android:id="@+id/btnCopyQRInfo"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Copiar Información del QR"
-                    android:textSize="12sp"
-                    android:textColor="@color/primary"
-                    android:layout_marginTop="8dp" />
-
+                    android:textSize="15sp" />
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
-
-        <Button
-            android:id="@+id/sosButton"
-            style="@style/SOSButton"
-            android:layout_width="140dp"
-            android:layout_height="140dp"
-            android:layout_gravity="center"
-            android:layout_marginBottom="40dp"
-            android:text="@string/sos" />
-
-        <TextView
-            style="@style/SectionTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Estado Actual" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="@style/MedicalCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <LinearLayout
+            <!-- Premium Identity QR Card (One UI Style) -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/PremiumCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/last_consultation"
-                    style="@style/InfoLabel" />
-
-                <TextView
-                    android:id="@+id/lastConsultationText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="15 Oct 2023 - Dr. García" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider"
-                    android:layout_marginVertical="12dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/next_appointment"
-                    style="@style/InfoLabel" />
-
-                <TextView
-                    android:id="@+id/nextAppointmentText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="22 Nov 2023 - 10:30 AM" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            style="@style/SectionTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Accesos Rápidos" />
-
-        <GridLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:alignmentMode="alignMargins"
-            android:columnOrderPreserved="false">
-
-            <!-- Historia Clínica -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/MedicalCard"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:id="@+id/historyLayout"
-                android:clickable="true"
-                android:focusable="true">
+                android:layout_marginBottom="28dp"
+                app:cardElevation="8dp"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="@color/qr_glow">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@drawable/ic_history"
-                        app:tint="@color/primary" />
+                    android:orientation="vertical"
+                    android:padding="24dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/history"
-                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="16dp"
+                        android:text="IDENTIDAD MÉDICA DIGITAL"
+                        android:textColor="@color/primary"
+                        android:textSize="11sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
+                        android:letterSpacing="0.15"/>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="230dp"
+                        android:layout_height="230dp"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/divider"
+                        app:strokeWidth="1dp">
+
+                        <ImageView
+                            android:id="@+id/qrImageView"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="20dp"
+                            android:scaleType="fitCenter" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:id="@+id/tvQRInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:gravity="center"
+                        android:text="Martin Rojas • O+"
+                        android:textColor="@color/text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnShareQRInfo"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="COMPARTIR INFORMACIÓN MÉDICA"
+                        app:icon="@android:drawable/ic_menu_share"
+                        android:textColor="@color/primary"
+                        android:textSize="12sp" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Medicación -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/MedicalCard"
-                android:layout_width="0dp"
+            <!-- Dynamic Medical Summary -->
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:id="@+id/medicationLayout"
-                android:clickable="true"
-                android:focusable="true">
+                android:text="Resumen Actual"
+                android:layout_marginTop="0dp" />
 
+            <com.google.android.material.card.MaterialCardView
+                style="@style/PremiumCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@drawable/ic_medication"
-                        app:tint="@color/primary" />
+                    <include layout="@layout/row_summary_item" android:id="@+id/summaryNextCita" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginVertical="12dp" />
+                    <include layout="@layout/row_summary_item" android:id="@+id/summaryLastConsulta" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginVertical="12dp" />
+                    <include layout="@layout/row_summary_item" android:id="@+id/summaryAlerts" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/medication"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Citas -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/MedicalCard"
-                android:layout_width="0dp"
+            <!-- Quick Access Grid (Functional) -->
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:id="@+id/appointmentsLayout"
-                android:clickable="true"
-                android:focusable="true">
+                android:text="Accesos Rápidos" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@drawable/ic_appointments"
-                        app:tint="@color/primary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/appointments"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Documentos -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/MedicalCard"
-                android:layout_width="0dp"
+            <GridLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:id="@+id/documentsLayout"
-                android:clickable="true"
-                android:focusable="true">
+                android:alignmentMode="alignMargins"
+                android:columnCount="2"
+                android:columnOrderPreserved="false">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="16dp">
+                <include android:id="@+id/historyLayout" layout="@layout/home_quick_card"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="8dp" />
 
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@drawable/ic_documents"
-                        app:tint="@color/primary" />
+                <include android:id="@+id/medicationLayout" layout="@layout/home_quick_card"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="8dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/documents"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <include android:id="@+id/appointmentsLayout" layout="@layout/home_quick_card"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="8dp" />
 
-        </GridLayout>
+                <include android:id="@+id/documentsLayout" layout="@layout/home_quick_card"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="8dp" />
+            </GridLayout>
 
-    </LinearLayout>
+            <View android:layout_width="match_parent" android:layout_height="80dp" />
 
-</ScrollView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- SOS Button: Floating Triangular Red with Glow -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/sosButton"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_margin="12dp"
+        android:backgroundTint="@android:color/transparent"
+        android:background="@drawable/sos_button_glow"
+        app:icon="@drawable/sos_triangle_background"
+        app:iconSize="48dp"
+        app:iconGravity="textStart"
+        app:iconTint="@null"
+        android:padding="0dp"
+        app:elevation="12dp"
+        app:strokeWidth="0dp"
+        android:stateListAnimator="@null"
+        app:layout_anchor="@id/homeScrollView"
+        app:layout_anchorGravity="top|end" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

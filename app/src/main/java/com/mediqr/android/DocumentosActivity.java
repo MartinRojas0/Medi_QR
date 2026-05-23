@@ -2,6 +2,7 @@ package com.mediqr.android;
 
 import android.app.Activity;
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -11,7 +12,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
@@ -25,6 +25,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -44,24 +45,18 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * DocumentosActivity: Repositorio documental profesional.
- * Preparado para conectarse a Cloud Storage vía MedicalRepository.
- */
 public class DocumentosActivity extends AppCompatActivity {
 
     private RecyclerView rvDocuments, rvSpecialties;
-    private TextView tvEmptyState, tvSpecTitle, tvRecentTitle;
-    private List<Documento> allDocuments;
-    private List<Documento> displayedDocuments;
-    private List<String> specialtyList;
-    private DocumentAdapter docAdapter;
-    private SpecialtyAdapter specAdapter;
+    private TextView tvEmptyState, tvRecentTitle;
+    private List<Documento> allDocs, displayDocs;
+    private List<String> specList;
+    private DocAdapter docAdapter;
+    private SpecAdapter specAdapter;
     private MedicalRepository repository;
-    
-    private ActivityResultLauncher<Intent> filePickerLauncher;
-    private Documento tempDocInfo;
-    private String selectedSpecialtyFilter = null;
+    private ActivityResultLauncher<Intent> picker;
+    private Documento temp;
+    private String currentFilter = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,278 +65,219 @@ public class DocumentosActivity extends AppCompatActivity {
 
         repository = MedicalRepository.getInstance(this);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        Toolbar t = findViewById(R.id.toolbar);
+        setSupportActionBar(t);
+        if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        t.setNavigationOnClickListener(v -> finish());
 
         rvDocuments = findViewById(R.id.rvDocuments);
         rvSpecialties = findViewById(R.id.rvSpecialties);
         tvEmptyState = findViewById(R.id.tvEmptyState);
-        tvSpecTitle = findViewById(R.id.tvSpecTitle);
         tvRecentTitle = findViewById(R.id.tvRecentTitle);
-        Button btnUpload = findViewById(R.id.btnUploadDocument);
+        View btnAdd = findViewById(R.id.btnUploadDocument);
 
-        allDocuments = new ArrayList<>();
-        displayedDocuments = new ArrayList<>();
-        specialtyList = new ArrayList<>();
-        
-        loadData();
+        allDocs = new ArrayList<>();
+        displayDocs = new ArrayList<>();
+        specList = new ArrayList<>();
 
-        docAdapter = new DocumentAdapter(displayedDocuments, this::showDeleteConfirmation, this::openDocument);
+        docAdapter = new DocAdapter(displayDocs, this::confirmDelete, this::openFile);
         rvDocuments.setLayoutManager(new LinearLayoutManager(this));
         rvDocuments.setAdapter(docAdapter);
 
-        specAdapter = new SpecialtyAdapter(specialtyList, this::filterBySpecialty);
-        rvSpecialties.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        specAdapter = new SpecAdapter(specList, this::onSpecClick);
+        rvSpecialties.setLayoutManager(new GridLayoutManager(this, 3));
         rvSpecialties.setAdapter(specAdapter);
 
-        updateUI();
+        picker = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), res -> {
+            if (res.getResultCode() == Activity.RESULT_OK && res.getData() != null) handle(res.getData().getData());
+        });
 
-        filePickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        Uri uri = result.getData().getData();
-                        handleFileSelection(uri);
-                    }
-                }
-        );
-
-        btnUpload.setOnClickListener(v -> showUploadDialog());
+        btnAdd.setOnClickListener(v -> showForm());
+        
+        load();
     }
 
-    private void loadData() {
-        allDocuments = repository.getDocuments();
-        
-        // Extraer especialidades únicas
+    private void load() {
+        allDocs = repository.getDocuments();
         Set<String> specs = new HashSet<>();
-        for (Documento d : allDocuments) specs.add(d.getEspecialidad());
-        specialtyList.clear();
-        specialtyList.addAll(specs);
-        Collections.sort(specialtyList);
-        
-        filterBySpecialty(selectedSpecialtyFilter);
+        for (Documento d : allDocs) specs.add(d.getEspecialidad());
+        specList.clear();
+        specList.addAll(specs);
+        Collections.sort(specList);
+        specAdapter.notifyDataSetChanged();
+        filter(currentFilter);
     }
 
-    private void updateUI() {
-        boolean isEmpty = allDocuments.isEmpty();
-        tvEmptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-        rvDocuments.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-        rvSpecialties.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-        tvSpecTitle.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-        tvRecentTitle.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-        
-        if (!isEmpty) {
-            tvRecentTitle.setText(selectedSpecialtyFilter != null ? 
-                    "Documentos de " + selectedSpecialtyFilter : "Documentos Recientes");
-        }
-    }
-
-    private void filterBySpecialty(String specialty) {
-        if (specialty != null && specialty.equals(selectedSpecialtyFilter)) {
-            selectedSpecialtyFilter = null; 
+    private void filter(String s) {
+        currentFilter = s;
+        displayDocs.clear();
+        if (s == null) {
+            displayDocs.addAll(allDocs);
         } else {
-            selectedSpecialtyFilter = specialty;
-        }
-        
-        displayedDocuments.clear();
-        if (selectedSpecialtyFilter == null) {
-            displayedDocuments.addAll(allDocuments);
-        } else {
-            for (Documento d : allDocuments) {
-                if (d.getEspecialidad().equals(selectedSpecialtyFilter)) displayedDocuments.add(d);
+            for (Documento d : allDocs) {
+                if (d.getEspecialidad().equals(s)) displayDocs.add(d);
             }
         }
-        if (docAdapter != null) docAdapter.notifyDataSetChanged();
-        updateUI();
+        docAdapter.notifyDataSetChanged();
+        if (tvRecentTitle != null) {
+            tvRecentTitle.setText(s == null ? "Todos los Documentos" : "Especialidad: " + s);
+        }
+        if (tvEmptyState != null) {
+            tvEmptyState.setVisibility(displayDocs.isEmpty() ? View.VISIBLE : View.GONE);
+        }
     }
 
-    private void showUploadDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View view = getLayoutInflater().inflate(R.layout.dialog_subir_documento, null);
-        builder.setView(view);
+    private void onSpecClick(String s) {
+        if (s != null && s.equals(currentFilter)) {
+            filter(null);
+        } else {
+            filter(s);
+        }
+    }
 
-        Spinner spinnerSpecialty = view.findViewById(R.id.spinnerDocSpecialty);
-        Spinner spinnerType = view.findViewById(R.id.spinnerDocType);
-        TextInputEditText editDoctor = view.findViewById(R.id.editDocDoctor);
-        TextInputEditText editLocation = view.findViewById(R.id.editDocLocation);
-        TextInputEditText editDate = view.findViewById(R.id.editDocDate);
-        Button btnCancel = view.findViewById(R.id.btnCancelDocUpload);
-        Button btnSelect = view.findViewById(R.id.btnSelectAndUpload);
+    private void showForm() {
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        View v = getLayoutInflater().inflate(R.layout.dialog_subir_documento, null);
+        b.setView(v);
 
-        String[] specialties = {"Cardiología", "Odontología", "Dermatología", "Medicina General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
-        spinnerSpecialty.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, specialties));
+        Spinner sSpec = v.findViewById(R.id.spinnerDocSpecialty);
+        Spinner sType = v.findViewById(R.id.spinnerDocType);
+        TextInputEditText eDoc = v.findViewById(R.id.editDocDoctor);
+        TextInputEditText eLoc = v.findViewById(R.id.editDocLocation);
+        TextInputEditText eDate = v.findViewById(R.id.editDocDate);
 
-        String[] types = {"Receta", "Análisis", "Informe", "Vacunación", "Otro"};
-        spinnerType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, types));
+        String[] specs = {"Cardiología", "Odontología", "Dermatología", "General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
+        sSpec.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, specs));
+        String[] types = {"Receta", "Análisis", "Informe", "Vacuna", "Imagen"};
+        sType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, types));
 
-        editDate.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            new DatePickerDialog(this, (dView, year, month, dayOfMonth) -> {
-                String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month + 1, year);
-                editDate.setText(date);
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
+        eDate.setOnClickListener(view -> {
+            Calendar c = Calendar.getInstance();
+            new DatePickerDialog(this, (view1, year, month, day) -> eDate.setText(day+"/"+(month+1)+"/"+year), c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
         });
 
-        AlertDialog dialog = builder.create();
-
-        btnSelect.setOnClickListener(v -> {
-            String doctor = editDoctor.getText().toString().trim();
-            String date = editDate.getText().toString().trim();
-            if (doctor.isEmpty() || date.isEmpty()) {
-                Toast.makeText(this, "Completa los campos obligatorios", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            tempDocInfo = new Documento(UUID.randomUUID().toString(), "", date, "",
-                    spinnerSpecialty.getSelectedItem().toString(), doctor,
-                    editLocation.getText().toString().trim(), spinnerType.getSelectedItem().toString());
-
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("*/*");
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "application/pdf"});
-            filePickerLauncher.launch(intent);
-            dialog.dismiss();
+        AlertDialog d = b.create();
+        v.findViewById(R.id.btnSelectAndUpload).setOnClickListener(view -> {
+            if (eDoc.getText().toString().isEmpty()) return;
+            temp = new Documento(UUID.randomUUID().toString(), "", eDate.getText().toString(), "", sSpec.getSelectedItem().toString(), eDoc.getText().toString(), eLoc.getText().toString(), sType.getSelectedItem().toString());
+            Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+            i.setType("*/*");
+            picker.launch(i);
+            d.dismiss();
         });
-
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
+        d.show();
     }
 
-    private void handleFileSelection(Uri uri) {
+    private void handle(Uri uri) {
         try {
-            String fileName = getFileName(uri);
-            File internalFile = new File(getFilesDir(), "doc_" + System.currentTimeMillis() + "_" + fileName);
-            
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            FileOutputStream outputStream = new FileOutputStream(internalFile);
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, read);
-            }
-            inputStream.close();
-            outputStream.close();
+            String name = getFileName(uri);
+            File file = new File(getFilesDir(), "doc_" + System.currentTimeMillis() + "_" + name);
+            InputStream is = getContentResolver().openInputStream(uri);
+            FileOutputStream os = new FileOutputStream(file);
+            byte[] buf = new byte[1024];
+            int r;
+            while ((r = is.read(buf)) != -1) os.write(buf, 0, r);
+            is.close();
+            os.close();
 
-            if (tempDocInfo != null) {
-                Documento newDoc = new Documento(tempDocInfo.getId(), fileName, tempDocInfo.getFecha(),
-                        internalFile.getAbsolutePath(), tempDocInfo.getEspecialidad(),
-                        tempDocInfo.getDoctor(), tempDocInfo.getLugar(), tempDocInfo.getTipo());
-                
-                repository.addDocument(newDoc);
-                loadData();
-                specAdapter.notifyDataSetChanged();
-                Toast.makeText(this, "Documento subido con éxito", Toast.LENGTH_SHORT).show();
+            if (temp != null) {
+                Documento d = new Documento(temp.getId(), name, temp.getFecha(), file.getAbsolutePath(), temp.getEspecialidad(), temp.getDoctor(), temp.getLugar(), temp.getTipo());
+                repository.addDocument(d);
+                load();
+                Toast.makeText(this, "Documento guardado", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            Toast.makeText(this, "Error al guardar archivo", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void openDocument(int position) {
-        Documento doc = displayedDocuments.get(position);
-        File file = new File(doc.getRuta());
-        if (!file.exists()) {
-            Toast.makeText(this, "El archivo no existe", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Uri uri = FileProvider.getUriForFile(this, "com.mediqr.android.fileprovider", file);
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, getContentResolver().getType(uri));
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        
-        try {
-            startActivity(intent);
-        } catch (Exception e) {
-            Toast.makeText(this, "No hay aplicación para abrir este archivo", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
         }
     }
 
     private String getFileName(Uri uri) {
-        String result = null;
+        String r = null;
         if (uri.getScheme().equals("content")) {
-            try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    if (index != -1) result = cursor.getString(index);
+            try (Cursor c = getContentResolver().query(uri, null, null, null, null)) {
+                if (c != null && c.moveToFirst()) {
+                    int i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (i != -1) r = c.getString(i);
                 }
             }
         }
-        if (result == null) {
-            result = uri.getPath();
-            if (result != null) {
-                int cut = result.lastIndexOf('/');
-                if (cut != -1) result = result.substring(cut + 1);
+        if (r == null) {
+            r = uri.getPath();
+            if (r != null) {
+                int cut = r.lastIndexOf('/');
+                if (cut != -1) r = r.substring(cut + 1);
             }
         }
-        return result;
+        return r;
     }
 
-    private void showDeleteConfirmation(int position) {
-        new AlertDialog.Builder(this)
-                .setTitle("Eliminar documento")
-                .setMessage("¿Estás seguro de eliminar este documento?")
-                .setPositiveButton("Eliminar", (dialog, which) -> {
-                    repository.deleteDocument(displayedDocuments.get(position));
-                    loadData();
-                    specAdapter.notifyDataSetChanged();
-                    Toast.makeText(this, "Documento eliminado", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancelar", null).show();
+    private void confirmDelete(int pos) {
+        new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Borrar este documento?").setPositiveButton("Sí", (d, w) -> {
+            repository.deleteDocument(displayDocs.get(pos));
+            load();
+        }).setNegativeButton("No", null).show();
     }
 
-    // --- ADAPTERS ---
-    private static class SpecialtyAdapter extends RecyclerView.Adapter<SpecialtyAdapter.ViewHolder> {
+    private void openFile(int pos) {
+        Documento d = displayDocs.get(pos);
+        File f = new File(d.getRuta());
+        Uri u = FileProvider.getUriForFile(this, "com.mediqr.android.fileprovider", f);
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setDataAndType(u, getContentResolver().getType(u));
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivity(i);
+        } catch (Exception e) {
+            Toast.makeText(this, "Sin visor", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static class SpecAdapter extends RecyclerView.Adapter<SpecAdapter.VH> {
         private List<String> list;
-        private OnSpecClickListener listener;
-        public interface OnSpecClickListener { void onClick(String spec); }
-        public SpecialtyAdapter(List<String> list, OnSpecClickListener listener) {
-            this.list = list; this.listener = listener;
+        private OnClick listener;
+        public interface OnClick { void onClick(String s); }
+        public SpecAdapter(List<String> l, OnClick click) { this.list = l; this.listener = click; }
+        @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup p, int t) {
+            return new VH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_especialidad, p, false));
         }
-        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_especialidad, parent, false));
-        }
-        @Override public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            String spec = list.get(position);
-            holder.tvName.setText(spec);
-            holder.itemView.setOnClickListener(v -> listener.onClick(spec));
+        @Override public void onBindViewHolder(@NonNull VH h, int p) {
+            h.t.setText(list.get(p));
+            h.itemView.setOnClickListener(v -> listener.onClick(list.get(p)));
         }
         @Override public int getItemCount() { return list.size(); }
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvName;
-            public ViewHolder(@NonNull View v) { super(v); tvName = v.findViewById(R.id.tvSpecName); }
+        static class VH extends RecyclerView.ViewHolder {
+            TextView t;
+            VH(View v) { super(v); t = v.findViewById(R.id.tvSpecName); }
         }
     }
 
-    private static class DocumentAdapter extends RecyclerView.Adapter<DocumentAdapter.ViewHolder> {
-        private List<Documento> docs;
-        private OnActionCallback deleteListener, openListener;
-        public interface OnActionCallback { void onAction(int pos); }
-        public DocumentAdapter(List<Documento> docs, OnActionCallback del, OnActionCallback open) {
-            this.docs = docs; this.deleteListener = del; this.openListener = open;
+    private static class DocAdapter extends RecyclerView.Adapter<DocAdapter.VH> {
+        private List<Documento> list;
+        private OnAct del, open;
+        public interface OnAct { void onAct(int p); }
+        public DocAdapter(List<Documento> l, OnAct d, OnAct o) { this.list = l; this.del = d; this.open = o; }
+        @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup p, int t) {
+            return new VH(LayoutInflater.from(p.getContext()).inflate(R.layout.item_documento, p, false));
         }
-        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_documento, parent, false));
+        @Override public void onBindViewHolder(@NonNull VH h, int p) {
+            Documento d = list.get(p);
+            h.n.setText(d.getTipo() + " - " + d.getEspecialidad());
+            h.d.setText(d.getFecha());
+            h.i.setImageResource(d.getNombre().toLowerCase().endsWith(".pdf") ? android.R.drawable.ic_menu_agenda : android.R.drawable.ic_menu_gallery);
+            h.b.setOnClickListener(v -> del.onAct(p));
+            h.itemView.setOnClickListener(v -> open.onAct(p));
         }
-        @Override public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Documento doc = docs.get(position);
-            holder.tvName.setText(doc.getTipo() + " - " + doc.getEspecialidad());
-            holder.tvDate.setText(doc.getFecha() + " | Dr. " + doc.getDoctor());
-            holder.ivIcon.setImageResource(doc.getNombre().toLowerCase().endsWith(".pdf") ? 
-                    android.R.drawable.ic_menu_agenda : android.R.drawable.ic_menu_gallery);
-            holder.btnDelete.setOnClickListener(v -> deleteListener.onAction(position));
-            holder.itemView.setOnClickListener(v -> openListener.onAction(position));
-        }
-        @Override public int getItemCount() { return docs.size(); }
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvName, tvDate; ImageView ivIcon; ImageButton btnDelete;
-            public ViewHolder(@NonNull View v) {
-                super(v); tvName = v.findViewById(R.id.tvDocName); tvDate = v.findViewById(R.id.tvDocDate);
-                ivIcon = v.findViewById(R.id.ivDocIcon); btnDelete = v.findViewById(R.id.btnDeleteDoc);
+        @Override public int getItemCount() { return list.size(); }
+        static class VH extends RecyclerView.ViewHolder {
+            TextView n, d;
+            ImageView i;
+            ImageButton b;
+            VH(View v) {
+                super(v);
+                n = v.findViewById(R.id.tvDocName);
+                d = v.findViewById(R.id.tvDocDate);
+                i = v.findViewById(R.id.ivDocIcon);
+                b = v.findViewById(R.id.btnDeleteDoc);
             }
         }
     }

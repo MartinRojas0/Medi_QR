@@ -1,137 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/background">
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_height="match_parent">
 
-        <TextView
-            style="@style/SectionTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/health"
-            android:textSize="28sp" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="@style/MedicalCard"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
 
-            <LinearLayout
+            <TextView
+                style="@style/Heading1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expediente Clínico"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Información médica y antecedentes vitales"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Alertas Críticas (Alergias Graves) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardCriticalAlert"
+                style="@style/PremiumCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/allergies"
-                    style="@style/InfoLabel" />
-
-                <TextView
-                    android:id="@+id/allergiesText"
+                app:cardBackgroundColor="@color/severity_high"
+                app:strokeColor="@color/sos_red"
+                app:strokeWidth="1dp"
+                android:visibility="gone">
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="Ninguna conocida"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="4dp" />
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_dialog_alert"
+                        app:tint="@color/sos_red" />
+                    <TextView
+                        android:id="@+id/tvCriticalAllergies"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="¡ALERTA!: Penicilina (Grave)"
+                        android:textColor="@color/severity_high_text"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginVertical="12dp" />
+            <!-- Sección: Información Vital -->
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Información Vital"
+                android:layout_marginTop="0dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/blood_type"
-                    style="@style/InfoLabel" />
-
-                <TextView
-                    android:id="@+id/bloodTypeText"
+            <com.google.android.material.card.MaterialCardView
+                style="@style/PremiumCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="A+ (Positivo)"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="4dp" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginVertical="12dp" />
+                    <include layout="@layout/row_medical_info" android:id="@+id/rowBlood" />
+                    <include layout="@layout/divider_horizontal" />
+                    <include layout="@layout/row_medical_info" android:id="@+id/rowAllergies" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/chronic_conditions"
-                    style="@style/InfoLabel" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <TextView
-                    android:id="@+id/chronicConditionsText"
+            <!-- Sección: Tratamientos -->
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tratamientos Actuales" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/PremiumCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="Hipertensión leve"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="4dp" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginVertical="12dp" />
+                    <include layout="@layout/row_medical_info" android:id="@+id/rowMeds" />
+                    <include layout="@layout/divider_horizontal" />
+                    <include layout="@layout/row_medical_info" android:id="@+id/rowChronic" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/current_medications"
-                    style="@style/InfoLabel" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <TextView
-                    android:id="@+id/currentMedicationsText"
+            <!-- Sección: Otros Antecedentes -->
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Otros Antecedentes" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/PremiumCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="40dp">
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="Enalapril 10mg / día"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="4dp" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginVertical="12dp" />
+                    <include layout="@layout/row_medical_info" android:id="@+id/rowVaccines" />
+                    <include layout="@layout/divider_horizontal" />
+                    <include layout="@layout/row_medical_info" android:id="@+id/rowSurgeries" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/documents"
-                    style="@style/InfoLabel" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <TextView
-                    android:id="@+id/documentsText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/InfoValue"
-                    android:layout_marginTop="4dp"
-                    android:text="Toca aquí para ver tus documentos"
-                    android:drawableEnd="@android:drawable/ic_menu_gallery"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="8dp" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-    </LinearLayout>
-
-</ScrollView>
+</LinearLayout>

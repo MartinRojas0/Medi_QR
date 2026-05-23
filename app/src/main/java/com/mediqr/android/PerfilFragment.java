@@ -18,10 +18,6 @@ import com.mediqr.android.models.PatientProfile;
 
 import java.util.List;
 
-/**
- * PerfilFragment: Gestión de identidad y exportación.
- * Centralizado en PatientProfile model.
- */
 public class PerfilFragment extends Fragment {
 
     private TextView nameText, ageText, dniText, emailText, phoneText, addressText, profileNameHeader;
@@ -89,7 +85,6 @@ public class PerfilFragment extends Fragment {
         editDistrict.setText(current.getDistrict());
         editHouse.setText(current.getHouseNum());
 
-        // Filter: Letters only for names
         InputFilter letterFilter = (source, start, end, dest, dstart, dend) -> {
             for (int i = start; i < end; i++) {
                 if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) return "";
@@ -102,29 +97,33 @@ public class PerfilFragment extends Fragment {
         AlertDialog dialog = builder.create();
 
         view.findViewById(R.id.btnSaveProfile).setOnClickListener(v -> {
-            if (editFirst.getText().toString().isEmpty() || editLast.getText().toString().isEmpty()) {
-                Toast.makeText(getContext(), "Nombres obligatorios", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            String fName = editFirst.getText().toString().trim();
+            String lName = editLast.getText().toString().trim();
+            String email = editEmail.getText().toString().trim();
             
-            if (!Patterns.EMAIL_ADDRESS.matcher(editEmail.getText()).matches()) {
-                Toast.makeText(getContext(), "Email inválido", Toast.LENGTH_SHORT).show();
+            if (fName.isEmpty() || lName.isEmpty()) {
+                Toast.makeText(getContext(), "Nombre y Apellido son obligatorios", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                Toast.makeText(getContext(), "Formato de email inválido", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            PatientProfile newProfile = repository.getProfile();
-            newProfile.setFirstName(editFirst.getText().toString().trim());
-            newProfile.setLastName(editLast.getText().toString().trim());
-            newProfile.setAge(Integer.parseInt(editAge.getText().toString()));
-            newProfile.setDni(editDNI.getText().toString().trim());
-            newProfile.setEmail(editEmail.getText().toString().trim());
-            newProfile.setPhone(editPhone.getText().toString().trim());
-            newProfile.setStreet(editStreet.getText().toString().trim());
-            newProfile.setDistrict(editDistrict.getText().toString().trim());
-            newProfile.setHouseNum(editHouse.getText().toString().trim());
+            PatientProfile newP = repository.getProfile();
+            newP.setFirstName(fName);
+            newP.setLastName(lName);
+            newP.setAge(Integer.parseInt(editAge.getText().toString()));
+            newP.setDni(editDNI.getText().toString().trim());
+            newP.setEmail(email);
+            newP.setPhone(editPhone.getText().toString().trim());
+            newP.setStreet(editStreet.getText().toString().trim());
+            newP.setDistrict(editDistrict.getText().toString().trim());
+            newP.setHouseNum(editHouse.getText().toString().trim());
 
-            repository.saveProfile(newProfile);
+            repository.saveProfile(newP);
             loadProfileData();
+            Toast.makeText(getContext(), "Perfil actualizado", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
@@ -137,28 +136,32 @@ public class PerfilFragment extends Fragment {
         List<Cita> history = repository.getAppointments(false);
         
         StringBuilder sb = new StringBuilder();
-        sb.append("📄 HISTORIAL MÉDICO - MEDIQR\n\n");
+        sb.append("📄 HISTORIAL MÉDICO CONSOLIDADO\n");
+        sb.append("---------------------------------\n\n");
         sb.append("👤 PACIENTE: ").append(p.getFullName()).append("\n");
         sb.append("DNI: ").append(p.getDni()).append("\n");
-        sb.append("SANGRE: ").append(p.getBloodType()).append("\n\n");
+        sb.append("SANGRE: ").append(p.getBloodType()).append("\n");
+        sb.append("ALERGIAS: ").append(p.getAllergies()).append("\n\n");
         
-        sb.append("🏥 ÚLTIMAS CONSULTAS:\n");
+        sb.append("🏥 REGISTROS DE CONSULTA:\n");
         int count = 0;
         for (Cita c : history) {
             if (c.isAtendida()) {
-                sb.append("- ").append(c.getFecha()).append(": ").append(c.getEspecialidad()).append(" (Dr. ").append(c.getDoctor()).append(")\n");
+                sb.append("• ").append(c.getFecha()).append(" - ").append(c.getEspecialidad()).append("\n");
+                sb.append("  Doctor: ").append(c.getDoctor()).append("\n");
                 count++;
-                if (count >= 3) break;
             }
         }
+        if (count == 0) sb.append("- No hay registros históricos disponibles.\n");
         
-        if (count == 0) sb.append("- No hay consultas registradas.\n");
-        
-        sb.append("\n✅ Estado: Exportado correctamente");
+        sb.append("\n---------------------------------\n");
+        sb.append("Generado por MediQR App Premium");
 
         new AlertDialog.Builder(requireContext())
-                .setTitle("Reporte Generado")
+                .setTitle("Reporte Médico PDF")
                 .setMessage(sb.toString())
-                .setPositiveButton("Cerrar", null).show();
+                .setPositiveButton("Compartir", (dialog, which) -> Toast.makeText(getContext(), "Enviando archivo...", Toast.LENGTH_SHORT).show())
+                .setNegativeButton("Cerrar", null)
+                .show();
     }
 }

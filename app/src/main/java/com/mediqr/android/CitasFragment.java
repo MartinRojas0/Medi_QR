@@ -25,10 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-/**
- * CitasFragment: Gestión de agenda médica.
- * Utiliza MedicalRepository para persistencia.
- */
 public class CitasFragment extends Fragment {
 
     private RecyclerView rvAppointments;
@@ -38,23 +34,19 @@ public class CitasFragment extends Fragment {
     private MedicalRepository repository;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_citas, container, false);
 
         repository = MedicalRepository.getInstance(requireContext());
-        
         rvAppointments = view.findViewById(R.id.rvAppointments);
         tvEmpty = view.findViewById(R.id.tvEmptyAppointments);
         Button btnNewCita = view.findViewById(R.id.newAppointmentButton);
 
-        citaList = repository.getAppointments(true);
+        refreshData();
 
-        adapter = new CitaAdapter(citaList, this::showCancelConfirmation, this::showRescheduleDialog, this::markAsAttended);
+        adapter = new CitaAdapter(citaList, this::showCancelConfirmation, this::showRescheduleDialog, this::askToAttend);
         rvAppointments.setLayoutManager(new LinearLayoutManager(getContext()));
         rvAppointments.setAdapter(adapter);
-
-        updateEmptyState();
 
         btnNewCita.setOnClickListener(v -> showNewCitaDialog(null));
 
@@ -62,7 +54,7 @@ public class CitasFragment extends Fragment {
     }
 
     private void refreshData() {
-        citaList = repository.getAppointments(true); // Solo próximas
+        citaList = repository.getAppointments(true);
         updateEmptyState();
         if (adapter != null) adapter.updateData(citaList);
     }
@@ -93,10 +85,7 @@ public class CitasFragment extends Fragment {
         String[] specialties = {"Cardiología", "Odontología", "Dermatología", "Medicina General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
         editSpecialtyText.setFocusable(false);
         editSpecialtyText.setOnClickListener(v -> {
-            new AlertDialog.Builder(requireContext())
-                .setTitle("Seleccione Especialidad")
-                .setItems(specialties, (dialog, which) -> editSpecialtyText.setText(specialties[which]))
-                .show();
+            new AlertDialog.Builder(requireContext()).setTitle("Seleccione Especialidad").setItems(specialties, (dialog, which) -> editSpecialtyText.setText(specialties[which])).show();
         });
 
         if (existingCita != null) {
@@ -110,12 +99,10 @@ public class CitasFragment extends Fragment {
 
         editDate.setOnClickListener(v -> {
             Calendar calendar = Calendar.getInstance();
-            DatePickerDialog dpd = new DatePickerDialog(getContext(), (view, year, month, dayOfMonth) -> {
+            new DatePickerDialog(getContext(), (view, year, month, dayOfMonth) -> {
                 String selectedDate = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth);
                 editDate.setText(selectedDate);
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
-            dpd.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
-            dpd.show();
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
         });
 
         editTime.setOnClickListener(v -> {
@@ -140,9 +127,7 @@ public class CitasFragment extends Fragment {
                 return;
             }
 
-            String id = existingCita != null ? existingCita.getId() : UUID.randomUUID().toString();
-            Cita newCita = new Cita(id, specialty, doctor, date, time, location, false);
-            
+            Cita newCita = new Cita(existingCita != null ? existingCita.getId() : UUID.randomUUID().toString(), specialty, doctor, date, time, location, false);
             repository.saveAppointment(newCita);
             refreshData();
             Toast.makeText(getContext(), "Cita guardada correctamente", Toast.LENGTH_SHORT).show();
@@ -153,16 +138,16 @@ public class CitasFragment extends Fragment {
         dialog.show();
     }
 
-    private void markAsAttended(int position) {
+    private void askToAttend(int position) {
         Cita cita = citaList.get(position);
         new AlertDialog.Builder(requireContext())
-                .setTitle("Marcar como Atendida")
-                .setMessage("¿Deseas mover esta cita al historial?")
-                .setPositiveButton("Sí", (dialog, which) -> {
+                .setTitle("Finalizar Cita")
+                .setMessage("¿Deseas marcar esta cita como ATENDIDA y moverla al Historial Médico?")
+                .setPositiveButton("Sí, Mover", (dialog, which) -> {
                     cita.setAtendida(true);
                     repository.saveAppointment(cita);
                     refreshData();
-                    Toast.makeText(getContext(), "Cita marcada como atendida", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Cita movida al historial", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("No", null)
                 .show();
@@ -186,46 +171,40 @@ public class CitasFragment extends Fragment {
         showNewCitaDialog(citaList.get(position));
     }
 
-    // Adapter Interno (Refactorizado para ser dinámico)
     private static class CitaAdapter extends RecyclerView.Adapter<CitaAdapter.ViewHolder> {
         private List<Cita> list;
-        private OnActionClickListener cancelListener, rescheduleListener, attendListener;
+        private OnActionClickListener cancel, edit, attend;
 
         public interface OnActionClickListener { void onAction(int position); }
 
-        public CitaAdapter(List<Cita> list, OnActionClickListener cancel, OnActionClickListener reschedule, OnActionClickListener attend) {
-            this.list = list; this.cancelListener = cancel; this.rescheduleListener = reschedule; this.attendListener = attend;
+        public CitaAdapter(List<Cita> list, OnActionClickListener cancel, OnActionClickListener edit, OnActionClickListener attend) {
+            this.list = list; this.cancel = cancel; this.edit = edit; this.attend = attend;
         }
 
         public void updateData(List<Cita> newList) { this.list = newList; notifyDataSetChanged(); }
 
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_cita, parent, false));
         }
 
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Cita cita = list.get(position);
-            holder.tvSpecialty.setText(cita.getEspecialidad());
-            holder.tvDoctor.setText("Dr. " + cita.getDoctor());
-            holder.tvDateTime.setText(cita.getFecha() + " - " + cita.getHora());
-            holder.tvLocation.setText(cita.getLugar());
+        @Override public void onBindViewHolder(@NonNull ViewHolder h, int pos) {
+            Cita c = list.get(pos);
+            h.tvSpecialty.setText(c.getEspecialidad());
+            h.tvDoctor.setText("Dr. " + c.getDoctor());
+            h.tvDateTime.setText(c.getFecha() + " - " + c.getHora());
+            h.tvLocation.setText(c.getLugar());
 
-            holder.btnCancel.setOnClickListener(v -> cancelListener.onAction(position));
-            holder.btnReschedule.setText("Editar");
-            holder.btnReschedule.setOnClickListener(v -> rescheduleListener.onAction(position));
-            holder.btnAttend.setOnClickListener(v -> attendListener.onAction(position));
+            h.btnCancel.setOnClickListener(v -> cancel.onAction(pos));
+            h.btnEdit.setText("Editar");
+            h.btnEdit.setOnClickListener(v -> edit.onAction(pos));
+            h.btnAttend.setOnClickListener(v -> attend.onAction(pos));
         }
 
-        @Override
-        public int getItemCount() { return list.size(); }
+        @Override public int getItemCount() { return list.size(); }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvSpecialty, tvDoctor, tvDateTime, tvLocation;
-            Button btnCancel, btnReschedule, btnAttend;
-
+            Button btnCancel, btnEdit, btnAttend;
             public ViewHolder(@NonNull View v) {
                 super(v);
                 tvSpecialty = v.findViewById(R.id.tvCitaSpecialty);
@@ -233,7 +212,7 @@ public class CitasFragment extends Fragment {
                 tvDateTime = v.findViewById(R.id.tvCitaDateTime);
                 tvLocation = v.findViewById(R.id.tvCitaLocation);
                 btnCancel = v.findViewById(R.id.btnCancelCita);
-                btnReschedule = v.findViewById(R.id.btnRescheduleCita);
+                btnEdit = v.findViewById(R.id.btnRescheduleCita);
                 btnAttend = v.findViewById(R.id.btnAttendCita);
             }
         }

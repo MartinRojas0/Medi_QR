@@ -1,113 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="4dp">
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
 
+    <!-- Timeline indicator -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="32dp"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/timeline_top"
+            android:layout_width="2dp"
+            android:layout_height="16dp"
+            android:background="@color/divider" />
+
+        <View
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/timeline_dot" />
+
+        <View
+            android:id="@+id/timeline_bottom"
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:background="@color/divider" />
+    </LinearLayout>
+
+    <!-- Main Content Card -->
+    <com.google.android.material.card.MaterialCardView
+        style="@style/PremiumCard"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="24dp"
+        app:cardElevation="4dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:orientation="vertical"
+            android:padding="20dp">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_heart"
-                app:tint="@color/primary" />
+            <!-- Header: Specialty & Doctor -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvHistSpecialty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Especialidad"
+                    android:textColor="@color/primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvHistDateTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:text="Fecha"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </RelativeLayout>
 
             <TextView
-                android:id="@+id/tvHistSpecialty"
-                android:layout_width="0dp"
+                android:id="@+id/tvHistDoctor"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:text="Especialidad"
-                android:textSize="18sp"
+                android:layout_marginTop="4dp"
+                android:text="Dr. Nombre Apellido"
+                android:textColor="@color/text_primary"
                 android:textStyle="bold"
-                android:textColor="@color/text_primary" />
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tvHistLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Clínica San Borja"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Diagnosis & Treatment Section -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/divider"
+                android:layout_marginVertical="16dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ATENDIDA"
+                android:text="DIAGNÓSTICO Y TRATAMIENTO"
+                android:textColor="@color/text_secondary"
                 android:textSize="10sp"
                 android:textStyle="bold"
-                android:textColor="@color/white"
-                android:background="@color/primary"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="2dp" />
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvHistDiagnosis"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Simulación de diagnóstico médico preventivo y control de rutina."
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <!-- Related Documents Section -->
+            <LinearLayout
+                android:id="@+id/layoutDocHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginVertical="16dp" />
+
+                <TextView
+                    android:id="@+id/tvDocTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DOCUMENTOS ADJUNTOS"
+                    android:textColor="@color/primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutRelatedDocs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/divider"
+                android:layout_marginVertical="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAttachDoc"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="+ ADJUNTAR ARCHIVO"
+                android:textColor="@color/primary"
+                android:textSize="11sp"
+                app:icon="@android:drawable/ic_input_add" />
 
         </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/tvHistDoctor"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Dr. Nombre Apellido"
-            android:textSize="15sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="8dp"
-            android:layout_marginStart="44dp" />
-
-        <TextView
-            android:id="@+id/tvHistDateTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="25 May 2024"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginTop="4dp"
-            android:layout_marginStart="44dp" />
-
-        <TextView
-            android:id="@+id/tvHistLocation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Clínica San Borja"
-            android:textSize="13sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="4dp"
-            android:layout_marginStart="44dp" />
-
-        <View
-            android:id="@+id/dividerHist"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/divider"
-            android:layout_marginVertical="12dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/tvDocTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Documentos Relacionados:"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary"
-            android:layout_marginStart="44dp"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/layoutRelatedDocs"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginStart="44dp"
-            android:layout_marginTop="4dp"
-            android:visibility="gone" />
-
-    </LinearLayout>
-
-</com.google.android.material.card.MaterialCardView>
+</LinearLayout>
