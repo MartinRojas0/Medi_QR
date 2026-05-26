@@ -1,167 +1,267 @@
 package com.mediqr.android;
 
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
 import android.text.InputFilter;
+import android.util.Base64;
 import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.Fragment;
-import com.google.android.material.textfield.TextInputEditText;
-import com.mediqr.android.data.MedicalRepository;
-import com.mediqr.android.models.Cita;
-import com.mediqr.android.models.PatientProfile;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.FileProvider;
+import androidx.fragment.app.Fragment;
+
+import com.google.android.material.textfield.TextInputEditText;
+import com.mediqr.android.datos.RepositorioMedico;
+import com.mediqr.android.modelos.Cita;
+import com.mediqr.android.modelos.Documento;
+import com.mediqr.android.modelos.PerfilPaciente;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.List;
 
+/**
+ * Fragmento de Perfil: Información del usuario y exportación avanzada a PDF mediante HTML.
+ */
 public class PerfilFragment extends Fragment {
 
-    private TextView nameText, ageText, dniText, emailText, phoneText, addressText, profileNameHeader;
-    private MedicalRepository repository;
+    private TextView tvNombre, tvEdad, tvDni, tvCorreo, tvTelefono, tvDireccion, tvCabeceraNombre;
+    private RepositorioMedico repositorio;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_perfil, container, false);
-
-        repository = MedicalRepository.getInstance(requireContext());
-
-        profileNameHeader = view.findViewById(R.id.profileNameHeader);
-        nameText = view.findViewById(R.id.nameText);
-        ageText = view.findViewById(R.id.ageText);
-        dniText = view.findViewById(R.id.dniText);
-        emailText = view.findViewById(R.id.emailText);
-        phoneText = view.findViewById(R.id.phoneText);
-        addressText = view.findViewById(R.id.addressText);
-        Button editProfileButton = view.findViewById(R.id.editProfileButton);
-        Button btnExportPDF = view.findViewById(R.id.btnExportPDF);
-
-        loadProfileData();
-
-        editProfileButton.setOnClickListener(v -> showEditProfileDialog());
-        btnExportPDF.setOnClickListener(v -> exportMedicalRecord());
-
-        return view;
+    public View onCreateView(@NonNull LayoutInflater inflador, ViewGroup contenedor, Bundle savedInstanceState) {
+        return inflador.inflate(R.layout.fragment_perfil, contenedor, false);
     }
 
-    private void loadProfileData() {
-        PatientProfile profile = repository.getProfile();
-        nameText.setText(profile.getFullName());
-        profileNameHeader.setText(profile.getFullName());
-        ageText.setText(profile.getAge() + " años");
-        dniText.setText(profile.getDni());
-        emailText.setText(profile.getEmail());
-        phoneText.setText(profile.getPhone());
-        addressText.setText(profile.getFullAddress());
-    }
+    @Override
+    public void onViewCreated(@NonNull View vista, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(vista, savedInstanceState);
+        repositorio = RepositorioMedico.getInstancia(requireContext());
 
-    private void showEditProfileDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        View view = getLayoutInflater().inflate(R.layout.dialog_edit_profile, null);
-        builder.setView(view);
-
-        TextInputEditText editFirst = view.findViewById(R.id.editFirstName);
-        TextInputEditText editLast = view.findViewById(R.id.editLastName);
-        TextInputEditText editAge = view.findViewById(R.id.editAge);
-        TextInputEditText editDNI = view.findViewById(R.id.editDNI);
-        TextInputEditText editEmail = view.findViewById(R.id.editEmail);
-        TextInputEditText editPhone = view.findViewById(R.id.editPhone);
-        TextInputEditText editStreet = view.findViewById(R.id.editStreet);
-        TextInputEditText editDistrict = view.findViewById(R.id.editDistrict);
-        TextInputEditText editHouse = view.findViewById(R.id.editHouseNum);
+        tvCabeceraNombre = vista.findViewById(R.id.profileNameHeader);
+        tvNombre = vista.findViewById(R.id.nameText);
+        tvEdad = vista.findViewById(R.id.ageText);
+        tvDni = vista.findViewById(R.id.dniText);
+        tvCorreo = vista.findViewById(R.id.emailText);
+        tvTelefono = vista.findViewById(R.id.phoneText);
+        tvDireccion = vista.findViewById(R.id.addressText);
         
-        PatientProfile current = repository.getProfile();
-        editFirst.setText(current.getFirstName());
-        editLast.setText(current.getLastName());
-        editAge.setText(String.valueOf(current.getAge()));
-        editDNI.setText(current.getDni());
-        editEmail.setText(current.getEmail());
-        editPhone.setText(current.getPhone());
-        editStreet.setText(current.getStreet());
-        editDistrict.setText(current.getDistrict());
-        editHouse.setText(current.getHouseNum());
+        Button btnEditarPerfil = vista.findViewById(R.id.editProfileButton);
+        Button btnExportarPDF = vista.findViewById(R.id.btnExportPDF);
 
-        InputFilter letterFilter = (source, start, end, dest, dstart, dend) -> {
-            for (int i = start; i < end; i++) {
-                if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) return "";
-            }
+        cargarDatosPerfil();
+
+        btnEditarPerfil.setOnClickListener(v -> mostrarDialogoEdicionPerfil());
+        btnExportarPDF.setOnClickListener(v -> exportarExpedienteHTML());
+    }
+
+    private void cargarDatosPerfil() {
+        PerfilPaciente p = repositorio.getPerfil();
+        tvNombre.setText(p.getNombreCompleto());
+        tvCabeceraNombre.setText(p.getNombreCompleto());
+        tvEdad.setText(p.getEdad() + " años");
+        tvDni.setText(p.getDni());
+        tvCorreo.setText(p.getCorreo());
+        tvTelefono.setText(p.getTelefono());
+        tvDireccion.setText(p.getDireccionCompleta());
+    }
+
+    private void mostrarDialogoEdicionPerfil() {
+        AlertDialog.Builder constructor = new AlertDialog.Builder(requireContext());
+        View v = getLayoutInflater().inflate(R.layout.dialog_edit_profile, null);
+        constructor.setView(v);
+
+        TextInputEditText eNombre = v.findViewById(R.id.editFirstName);
+        TextInputEditText eApellido = v.findViewById(R.id.editLastName);
+        TextInputEditText eEdad = v.findViewById(R.id.editAge);
+        TextInputEditText eDNI = v.findViewById(R.id.editDNI);
+        TextInputEditText eCorreo = v.findViewById(R.id.editEmail);
+        TextInputEditText eTelf = v.findViewById(R.id.editPhone);
+        TextInputEditText eCalle = v.findViewById(R.id.editStreet);
+        TextInputEditText eDistrito = v.findViewById(R.id.editDistrict);
+        TextInputEditText eCasa = v.findViewById(R.id.editHouseNum);
+        
+        PerfilPaciente actual = repositorio.getPerfil();
+        eNombre.setText(actual.getNombre());
+        eApellido.setText(actual.getApellido());
+        eEdad.setText(String.valueOf(actual.getEdad()));
+        eDNI.setText(actual.getDni());
+        eCorreo.setText(actual.getCorreo());
+        eTelf.setText(actual.getTelefono());
+        eCalle.setText(actual.getCalle());
+        eDistrito.setText(actual.getDistrito());
+        eCasa.setText(actual.getNumeroCasa());
+
+        InputFilter filtroLetras = (src, s, e, dst, ds, de) -> {
+            for (int i = s; i < e; i++) if (!Character.isLetter(src.charAt(i)) && !Character.isSpaceChar(src.charAt(i))) return "";
             return null;
         };
-        editFirst.setFilters(new InputFilter[]{letterFilter});
-        editLast.setFilters(new InputFilter[]{letterFilter});
+        eNombre.setFilters(new InputFilter[]{filtroLetras});
+        eApellido.setFilters(new InputFilter[]{filtroLetras});
 
-        AlertDialog dialog = builder.create();
+        AlertDialog dialogo = constructor.create();
 
-        view.findViewById(R.id.btnSaveProfile).setOnClickListener(v -> {
-            String fName = editFirst.getText().toString().trim();
-            String lName = editLast.getText().toString().trim();
-            String email = editEmail.getText().toString().trim();
+        v.findViewById(R.id.btnSaveProfile).setOnClickListener(view -> {
+            String nom = eNombre.getText().toString().trim();
+            String ape = eApellido.getText().toString().trim();
+            String corr = eCorreo.getText().toString().trim();
             
-            if (fName.isEmpty() || lName.isEmpty()) {
-                Toast.makeText(getContext(), "Nombre y Apellido son obligatorios", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                Toast.makeText(getContext(), "Formato de email inválido", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            if (nom.isEmpty() || ape.isEmpty()) { Toast.makeText(getContext(), "Campos obligatorios vacíos", Toast.LENGTH_SHORT).show(); return; }
+            if (!Patterns.EMAIL_ADDRESS.matcher(corr).matches()) { Toast.makeText(getContext(), "Email inválido", Toast.LENGTH_SHORT).show(); return; }
 
-            PatientProfile newP = repository.getProfile();
-            newP.setFirstName(fName);
-            newP.setLastName(lName);
-            newP.setAge(Integer.parseInt(editAge.getText().toString()));
-            newP.setDni(editDNI.getText().toString().trim());
-            newP.setEmail(email);
-            newP.setPhone(editPhone.getText().toString().trim());
-            newP.setStreet(editStreet.getText().toString().trim());
-            newP.setDistrict(editDistrict.getText().toString().trim());
-            newP.setHouseNum(editHouse.getText().toString().trim());
+            PerfilPaciente nuevo = repositorio.getPerfil();
+            nuevo.setNombre(nom);
+            nuevo.setApellido(ape);
+            try { nuevo.setEdad(Integer.parseInt(eEdad.getText().toString())); } catch (Exception ex) { nuevo.setEdad(20); }
+            nuevo.setDni(eDNI.getText().toString().trim());
+            nuevo.setCorreo(corr);
+            nuevo.setTelefono(eTelf.getText().toString().trim());
+            nuevo.setCalle(eCalle.getText().toString().trim());
+            nuevo.setDistrito(eDistrito.getText().toString().trim());
+            nuevo.setNumeroCasa(eCasa.getText().toString().trim());
 
-            repository.saveProfile(newP);
-            loadProfileData();
+            repositorio.guardarPerfil(nuevo);
+            cargarDatosPerfil();
             Toast.makeText(getContext(), "Perfil actualizado", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            dialogo.dismiss();
         });
 
-        view.findViewById(R.id.btnCancelEdit).setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
+        v.findViewById(R.id.btnCancelEdit).setOnClickListener(view -> dialogo.dismiss());
+        dialogo.show();
     }
 
-    private void exportMedicalRecord() {
-        PatientProfile p = repository.getProfile();
-        List<Cita> history = repository.getAppointments(false);
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append("📄 HISTORIAL MÉDICO CONSOLIDADO\n");
-        sb.append("---------------------------------\n\n");
-        sb.append("👤 PACIENTE: ").append(p.getFullName()).append("\n");
-        sb.append("DNI: ").append(p.getDni()).append("\n");
-        sb.append("SANGRE: ").append(p.getBloodType()).append("\n");
-        sb.append("ALERGIAS: ").append(p.getAllergies()).append("\n\n");
-        
-        sb.append("🏥 REGISTROS DE CONSULTA:\n");
-        int count = 0;
-        for (Cita c : history) {
+    /**
+     * Nueva Estrategia: Generar HTML dinámico y usar el motor de impresión de Android para PDF.
+     * Esto permite previsualización, imágenes estables y diseño profesional.
+     */
+    private void exportarExpedienteHTML() {
+        PerfilPaciente p = repositorio.getPerfil();
+        List<Cita> citas = repositorio.getCitas(false);
+        List<Documento> docs = repositorio.getDocumentos();
+
+        StringBuilder html = new StringBuilder();
+        html.append("<html><head><style>")
+            .append("body { font-family: sans-serif; color: #333; padding: 20px; }")
+            .append(".header { text-align: center; border-bottom: 2px solid #1E88E5; padding-bottom: 10px; margin-bottom: 20px; }")
+            .append("h1 { color: #1E88E5; margin: 0; }")
+            .append("h2 { color: #EF4444; border-left: 4px solid #EF4444; padding-left: 10px; margin-top: 30px; font-size: 18px; }")
+            .append(".section { margin-bottom: 20px; }")
+            .append(".field { font-weight: bold; color: #555; }")
+            .append(".item { background: #F8FAFC; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E2E8F0; }")
+            .append(".img-container { text-align: center; margin-top: 10px; }")
+            .append("img { max-width: 100%; border-radius: 8px; height: auto; margin-top: 10px; border: 1px solid #DDD; }")
+            .append("</style></head><body>");
+
+        // Cabecera
+        html.append("<div class='header'><h1>EXPEDIENTE MÉDICO MEDIQR</h1>")
+            .append("<p>Generado oficialmente el ").append(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date())).append("</p></div>");
+
+        // Datos Personales
+        html.append("<h2>1. INFORMACIÓN PERSONAL</h2><div class='section'>")
+            .append("<p><span class='field'>Nombre:</span> ").append(p.getNombreCompleto()).append("</p>")
+            .append("<p><span class='field'>DNI:</span> ").append(p.getDni()).append(" | <span class='field'>Edad:</span> ").append(p.getEdad()).append(" años</p>")
+            .append("<p><span class='field'>Correo:</span> ").append(p.getCorreo()).append(" | <span class='field'>Teléfono:</span> ").append(p.getTelefono()).append("</p>")
+            .append("<p><span class='field'>Dirección:</span> ").append(p.getDireccionCompleta()).append("</p></div>");
+
+        // Salud
+        html.append("<h2>2. INFORMACIÓN CLÍNICA CRÍTICA</h2><div class='section'>")
+            .append("<p><span class='field'>Tipo de Sangre:</span> ").append(p.getTipoSangre()).append("</p>")
+            .append("<p><span class='field'>Alergias:</span> ").append(p.getAlergias()).append("</p>")
+            .append("<p><span class='field'>Condiciones:</span> ").append(p.getCondicionesCronicas()).append("</p>")
+            .append("<p><span class='field'>Medicamentos:</span> ").append(p.getMedicamentosActuales()).append("</p></div>");
+
+        // Antecedentes
+        html.append("<h2>3. ANTECEDENTES Y VACUNAS</h2><div class='section'>")
+            .append("<p><span class='field'>Vacunas:</span> ").append(p.getVacunas()).append("</p>")
+            .append("<p><span class='field'>Cirugías:</span> ").append(p.getCirugias()).append("</p></div>");
+
+        // Historial
+        html.append("<h2>4. HISTORIAL DE CONSULTAS</h2><div class='section'>");
+        for (Cita c : citas) {
             if (c.isAtendida()) {
-                sb.append("• ").append(c.getFecha()).append(" - ").append(c.getEspecialidad()).append("\n");
-                sb.append("  Doctor: ").append(c.getDoctor()).append("\n");
-                count++;
+                html.append("<div class='item'>")
+                    .append("<p><span class='field'>[").append(c.getFecha()).append("] ").append(c.getEspecialidad()).append("</span></p>")
+                    .append("<p>Médico: Dr. ").append(c.getDoctor()).append(" | Lugar: ").append(c.getLugar()).append("</p>")
+                    .append("<p><i>Diagnóstico: ").append(c.getDiagnostico()).append("</i></p></div>");
             }
         }
-        if (count == 0) sb.append("- No hay registros históricos disponibles.\n");
-        
-        sb.append("\n---------------------------------\n");
-        sb.append("Generado por MediQR App Premium");
+        html.append("</div>");
 
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Reporte Médico PDF")
-                .setMessage(sb.toString())
-                .setPositiveButton("Compartir", (dialog, which) -> Toast.makeText(getContext(), "Enviando archivo...", Toast.LENGTH_SHORT).show())
-                .setNegativeButton("Cerrar", null)
-                .show();
+        // Documentos con Imágenes Reales (Base64 para incrustar en PDF)
+        html.append("<h2>5. ARCHIVOS Y EVIDENCIAS</h2><div class='section'>");
+        for (Documento d : docs) {
+            html.append("<div class='item'><p><span class='field'>Archivo:</span> ").append(d.getNombre()).append(" (").append(d.getTipo()).append(")</p>")
+                .append("<p>Fecha: ").append(d.getFecha()).append("</p>");
+            
+            // Intentar cargar e incrustar la imagen
+            String base64 = getBase64Image(d.getRuta());
+            if (base64 != null) {
+                html.append("<div class='img-container'><img src='data:image/jpeg;base64,").append(base64).append("' /></div>");
+            } else {
+                html.append("<p style='color: #888;'>[Evidencia no disponible como imagen]</p>");
+            }
+            html.append("</div>");
+        }
+        html.append("</div></body></html>");
+
+        // Usamos WebView para procesar el HTML y lanzamos el diálogo de impresión de Android
+        WebView webView = new WebView(requireContext());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                crearTrabajoImpresion(view);
+            }
+        });
+        webView.loadDataWithBaseURL(null, html.toString(), "text/HTML", "UTF-8", null);
+    }
+
+    private String getBase64Image(String ruta) {
+        try {
+            File file = new File(ruta);
+            if (!file.exists()) return null;
+            Bitmap bitmap = BitmapFactory.decodeFile(ruta);
+            if (bitmap == null) return null;
+            
+            // Escalar para reducir peso del PDF
+            int maxDim = 800;
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            if (width > maxDim || height > maxDim) {
+                float factor = maxDim / (float) Math.max(width, height);
+                bitmap = Bitmap.createScaledBitmap(bitmap, (int)(width*factor), (int)(height*factor), true);
+            }
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream);
+            byte[] bytes = outputStream.toByteArray();
+            return Base64.encodeToString(bytes, Base64.NO_WRAP);
+        } catch (Exception e) { return null; }
+    }
+
+    private void crearTrabajoImpresion(WebView webView) {
+        PrintManager printManager = (PrintManager) requireContext().getSystemService(Context.PRINT_SERVICE);
+        String jobName = "Expediente_MediQR_" + System.currentTimeMillis();
+        PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter(jobName);
+        
+        if (printManager != null) {
+            printManager.print(jobName, printAdapter, new PrintAttributes.Builder().build());
+        }
     }
 }

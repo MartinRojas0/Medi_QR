@@ -17,203 +17,205 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
-import com.mediqr.android.data.MedicalRepository;
-import com.mediqr.android.models.Cita;
+import com.mediqr.android.datos.RepositorioMedico;
+import com.mediqr.android.modelos.Cita;
 
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+/**
+ * Fragmento de Citas: Gestión de consultas médicas programadas.
+ */
 public class CitasFragment extends Fragment {
 
-    private RecyclerView rvAppointments;
-    private TextView tvEmpty;
-    private List<Cita> citaList;
-    private CitaAdapter adapter;
-    private MedicalRepository repository;
+    private RecyclerView rvCitas;
+    private TextView tvVacio;
+    private List<Cita> listaCitas;
+    private AdaptadorCitas adaptador;
+    private RepositorioMedico repositorio;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_citas, container, false);
+    public View onCreateView(LayoutInflater inflador, ViewGroup contenedor, Bundle savedInstanceState) {
+        View vista = inflador.inflate(R.layout.fragment_citas, contenedor, false);
 
-        repository = MedicalRepository.getInstance(requireContext());
-        rvAppointments = view.findViewById(R.id.rvAppointments);
-        tvEmpty = view.findViewById(R.id.tvEmptyAppointments);
-        Button btnNewCita = view.findViewById(R.id.newAppointmentButton);
+        repositorio = RepositorioMedico.getInstancia(requireContext());
+        rvCitas = vista.findViewById(R.id.rvAppointments);
+        tvVacio = vista.findViewById(R.id.tvEmptyAppointments);
+        Button btnNuevaCita = vista.findViewById(R.id.newAppointmentButton);
 
-        refreshData();
+        refrescarDatos();
 
-        adapter = new CitaAdapter(citaList, this::showCancelConfirmation, this::showRescheduleDialog, this::askToAttend);
-        rvAppointments.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvAppointments.setAdapter(adapter);
+        adaptador = new AdaptadorCitas(listaCitas, this::confirmarCancelacion, this::mostrarDialogoReprogramacion, this::preguntarPorAtencion);
+        rvCitas.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvCitas.setAdapter(adaptador);
 
-        btnNewCita.setOnClickListener(v -> showNewCitaDialog(null));
+        btnNuevaCita.setOnClickListener(v -> mostrarDialogoNuevaCita(null));
 
-        return view;
+        return vista;
     }
 
-    private void refreshData() {
-        citaList = repository.getAppointments(true);
-        updateEmptyState();
-        if (adapter != null) adapter.updateData(citaList);
+    private void refrescarDatos() {
+        listaCitas = repositorio.getCitas(true);
+        actualizarEstadoVacio();
+        if (adaptador != null) adaptador.actualizarDatos(listaCitas);
     }
 
-    private void updateEmptyState() {
-        if (citaList.isEmpty()) {
-            tvEmpty.setVisibility(View.VISIBLE);
-            rvAppointments.setVisibility(View.GONE);
+    private void actualizarEstadoVacio() {
+        if (listaCitas.isEmpty()) {
+            tvVacio.setVisibility(View.VISIBLE);
+            rvCitas.setVisibility(View.GONE);
         } else {
-            tvEmpty.setVisibility(View.GONE);
-            rvAppointments.setVisibility(View.VISIBLE);
+            tvVacio.setVisibility(View.GONE);
+            rvCitas.setVisibility(View.VISIBLE);
         }
     }
 
-    private void showNewCitaDialog(Cita existingCita) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nueva_cita, null);
-        builder.setView(dialogView);
+    private void mostrarDialogoNuevaCita(Cita citaExistente) {
+        AlertDialog.Builder constructor = new AlertDialog.Builder(requireContext());
+        View vistaDialogo = getLayoutInflater().inflate(R.layout.dialog_nueva_cita, null);
+        constructor.setView(vistaDialogo);
 
-        TextInputEditText editSpecialtyText = dialogView.findViewById(R.id.editCitaSpecialty);
-        TextInputEditText editDoctor = dialogView.findViewById(R.id.editCitaDoctor);
-        TextInputEditText editDate = dialogView.findViewById(R.id.editCitaDate);
-        TextInputEditText editTime = dialogView.findViewById(R.id.editCitaTime);
-        TextInputEditText editLocation = dialogView.findViewById(R.id.editCitaLocation);
-        Button btnSave = dialogView.findViewById(R.id.btnSaveNewCita);
-        Button btnCancel = dialogView.findViewById(R.id.btnCancelNewCita);
+        TextInputEditText editEspecialidad = vistaDialogo.findViewById(R.id.editCitaSpecialty);
+        TextInputEditText editDoctor = vistaDialogo.findViewById(R.id.editCitaDoctor);
+        TextInputEditText editFecha = vistaDialogo.findViewById(R.id.editCitaDate);
+        TextInputEditText editHora = vistaDialogo.findViewById(R.id.editCitaTime);
+        TextInputEditText editLugar = vistaDialogo.findViewById(R.id.editCitaLocation);
+        Button btnGuardar = vistaDialogo.findViewById(R.id.btnSaveNewCita);
 
-        String[] specialties = {"Cardiología", "Odontología", "Dermatología", "Medicina General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
-        editSpecialtyText.setFocusable(false);
-        editSpecialtyText.setOnClickListener(v -> {
-            new AlertDialog.Builder(requireContext()).setTitle("Seleccione Especialidad").setItems(specialties, (dialog, which) -> editSpecialtyText.setText(specialties[which])).show();
+        String[] especialidades = {"Cardiología", "Odontología", "Dermatología", "Medicina General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
+        editEspecialidad.setFocusable(false);
+        editEspecialidad.setOnClickListener(v -> {
+            new AlertDialog.Builder(requireContext()).setTitle("Seleccione Especialidad").setItems(especialidades, (dialogo, cual) -> editEspecialidad.setText(especialidades[cual])).show();
         });
 
-        if (existingCita != null) {
-            editSpecialtyText.setText(existingCita.getEspecialidad());
-            editDoctor.setText(existingCita.getDoctor());
-            editDate.setText(existingCita.getFecha());
-            editTime.setText(existingCita.getHora());
-            editLocation.setText(existingCita.getLugar());
-            btnSave.setText("ACTUALIZAR");
+        if (citaExistente != null) {
+            editEspecialidad.setText(citaExistente.getEspecialidad());
+            editDoctor.setText(citaExistente.getDoctor());
+            editFecha.setText(citaExistente.getFecha());
+            editHora.setText(citaExistente.getHora());
+            editLugar.setText(citaExistente.getLugar());
+            btnGuardar.setText("ACTUALIZAR");
         }
 
-        editDate.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            new DatePickerDialog(getContext(), (view, year, month, dayOfMonth) -> {
-                String selectedDate = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth);
-                editDate.setText(selectedDate);
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
+        editFecha.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            new DatePickerDialog(getContext(), (view, anio, mes, dia) -> {
+                String fechaSel = String.format(Locale.getDefault(), "%04d-%02d-%02d", anio, mes + 1, dia);
+                editFecha.setText(fechaSel);
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
         });
 
-        editTime.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
-                String selectedTime = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute);
-                editTime.setText(selectedTime);
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
+        editHora.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            new TimePickerDialog(getContext(), (view, hora, min) -> {
+                String horaSel = String.format(Locale.getDefault(), "%02d:%02d", hora, min);
+                editHora.setText(horaSel);
+            }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show();
         });
 
-        AlertDialog dialog = builder.create();
+        AlertDialog dialogo = constructor.create();
 
-        btnSave.setOnClickListener(v -> {
-            String specialty = editSpecialtyText.getText().toString().trim();
+        btnGuardar.setOnClickListener(v -> {
+            String especialidad = editEspecialidad.getText().toString().trim();
             String doctor = editDoctor.getText().toString().trim();
-            String date = editDate.getText().toString().trim();
-            String time = editTime.getText().toString().trim();
-            String location = editLocation.getText().toString().trim();
+            String fecha = editFecha.getText().toString().trim();
+            String hora = editHora.getText().toString().trim();
+            String lugar = editLugar.getText().toString().trim();
 
-            if (specialty.isEmpty() || doctor.isEmpty() || date.isEmpty() || time.isEmpty()) {
+            if (especialidad.isEmpty() || doctor.isEmpty() || fecha.isEmpty() || hora.isEmpty()) {
                 Toast.makeText(getContext(), "Por favor rellene los campos principales", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Cita newCita = new Cita(existingCita != null ? existingCita.getId() : UUID.randomUUID().toString(), specialty, doctor, date, time, location, false);
-            repository.saveAppointment(newCita);
-            refreshData();
+            Cita nuevaCita = new Cita(citaExistente != null ? citaExistente.getId() : UUID.randomUUID().toString(), especialidad, doctor, fecha, hora, lugar, false);
+            repositorio.guardarCita(nuevaCita);
+            refrescarDatos();
             Toast.makeText(getContext(), "Cita guardada correctamente", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            dialogo.dismiss();
         });
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
+        vistaDialogo.findViewById(R.id.btnCancelNewCita).setOnClickListener(v -> dialogo.dismiss());
+        dialogo.show();
     }
 
-    private void askToAttend(int position) {
-        Cita cita = citaList.get(position);
+    private void preguntarPorAtencion(int posicion) {
+        Cita cita = listaCitas.get(posicion);
         new AlertDialog.Builder(requireContext())
                 .setTitle("Finalizar Cita")
                 .setMessage("¿Deseas marcar esta cita como ATENDIDA y moverla al Historial Médico?")
-                .setPositiveButton("Sí, Mover", (dialog, which) -> {
+                .setPositiveButton("Sí, Mover", (dialogo, cual) -> {
                     cita.setAtendida(true);
-                    repository.saveAppointment(cita);
-                    refreshData();
+                    repositorio.guardarCita(cita);
+                    refrescarDatos();
                     Toast.makeText(getContext(), "Cita movida al historial", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("No", null)
                 .show();
     }
 
-    private void showCancelConfirmation(int position) {
-        Cita cita = citaList.get(position);
+    private void confirmarCancelacion(int posicion) {
+        Cita cita = listaCitas.get(posicion);
         new AlertDialog.Builder(requireContext())
                 .setTitle("Cancelar Cita")
                 .setMessage("¿Estás seguro de que deseas cancelar esta cita?")
-                .setPositiveButton("Sí, Cancelar", (dialog, which) -> {
-                    repository.deleteAppointment(cita.getId());
-                    refreshData();
+                .setPositiveButton("Sí, Cancelar", (dialogo, cual) -> {
+                    repositorio.eliminarCita(cita.getId());
+                    refrescarDatos();
                     Toast.makeText(getContext(), "Cita cancelada", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("No", null)
                 .show();
     }
 
-    private void showRescheduleDialog(int position) {
-        showNewCitaDialog(citaList.get(position));
+    private void mostrarDialogoReprogramacion(int posicion) {
+        mostrarDialogoNuevaCita(listaCitas.get(posicion));
     }
 
-    private static class CitaAdapter extends RecyclerView.Adapter<CitaAdapter.ViewHolder> {
-        private List<Cita> list;
-        private OnActionClickListener cancel, edit, attend;
+    private static class AdaptadorCitas extends RecyclerView.Adapter<AdaptadorCitas.ViewHolder> {
+        private List<Cita> lista;
+        private final OnClickAccion cancelador, editor, atendedor;
 
-        public interface OnActionClickListener { void onAction(int position); }
+        public interface OnClickAccion { void onAccion(int posicion); }
 
-        public CitaAdapter(List<Cita> list, OnActionClickListener cancel, OnActionClickListener edit, OnActionClickListener attend) {
-            this.list = list; this.cancel = cancel; this.edit = edit; this.attend = attend;
+        public AdaptadorCitas(List<Cita> lista, OnClickAccion cancelador, OnClickAccion editor, OnClickAccion atendedor) {
+            this.lista = lista; this.cancelador = cancelador; this.editor = editor; this.atendedor = atendedor;
         }
 
-        public void updateData(List<Cita> newList) { this.list = newList; notifyDataSetChanged(); }
+        public void actualizarDatos(List<Cita> nuevaLista) { this.lista = nuevaLista; notifyDataSetChanged(); }
 
-        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_cita, parent, false));
+        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup padre, int tipo) {
+            return new ViewHolder(LayoutInflater.from(padre.getContext()).inflate(R.layout.item_cita, padre, false));
         }
 
         @Override public void onBindViewHolder(@NonNull ViewHolder h, int pos) {
-            Cita c = list.get(pos);
-            h.tvSpecialty.setText(c.getEspecialidad());
+            Cita c = lista.get(pos);
+            h.tvEspecialidad.setText(c.getEspecialidad());
             h.tvDoctor.setText("Dr. " + c.getDoctor());
-            h.tvDateTime.setText(c.getFecha() + " - " + c.getHora());
-            h.tvLocation.setText(c.getLugar());
+            h.tvFechaHora.setText(c.getFecha() + " - " + c.getHora());
+            h.tvLugar.setText(c.getLugar());
 
-            h.btnCancel.setOnClickListener(v -> cancel.onAction(pos));
-            h.btnEdit.setText("Editar");
-            h.btnEdit.setOnClickListener(v -> edit.onAction(pos));
-            h.btnAttend.setOnClickListener(v -> attend.onAction(pos));
+            h.btnCancelar.setOnClickListener(v -> cancelador.onAccion(pos));
+            h.btnEditar.setText("Editar");
+            h.btnEditar.setOnClickListener(v -> editor.onAccion(pos));
+            h.btnAtender.setOnClickListener(v -> atendedor.onAccion(pos));
         }
 
-        @Override public int getItemCount() { return list.size(); }
+        @Override public int getItemCount() { return lista.size(); }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvSpecialty, tvDoctor, tvDateTime, tvLocation;
-            Button btnCancel, btnEdit, btnAttend;
+            TextView tvEspecialidad, tvDoctor, tvFechaHora, tvLugar;
+            Button btnCancelar, btnEditar, btnAtender;
             public ViewHolder(@NonNull View v) {
                 super(v);
-                tvSpecialty = v.findViewById(R.id.tvCitaSpecialty);
+                tvEspecialidad = v.findViewById(R.id.tvCitaSpecialty);
                 tvDoctor = v.findViewById(R.id.tvCitaDoctor);
-                tvDateTime = v.findViewById(R.id.tvCitaDateTime);
-                tvLocation = v.findViewById(R.id.tvCitaLocation);
-                btnCancel = v.findViewById(R.id.btnCancelCita);
-                btnEdit = v.findViewById(R.id.btnRescheduleCita);
-                btnAttend = v.findViewById(R.id.btnAttendCita);
+                tvFechaHora = v.findViewById(R.id.tvCitaDateTime);
+                tvLugar = v.findViewById(R.id.tvCitaLocation);
+                btnCancelar = v.findViewById(R.id.btnCancelCita);
+                btnEditar = v.findViewById(R.id.btnRescheduleCita);
+                btnAtender = v.findViewById(R.id.btnAttendCita);
             }
         }
     }

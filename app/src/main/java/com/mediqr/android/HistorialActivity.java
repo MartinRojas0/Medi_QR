@@ -1,15 +1,23 @@
 package com.mediqr.android;
 
 import android.app.Activity;
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,15 +31,18 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.mediqr.android.data.MedicalRepository;
-import com.mediqr.android.models.Cita;
-import com.mediqr.android.models.Documento;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.mediqr.android.datos.RepositorioMedico;
+import com.mediqr.android.modelos.Cita;
+import com.mediqr.android.modelos.Documento;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -39,164 +50,280 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * HistorialActivity: Premium Timeline with integrated Document linking.
+ * Actividad del Historial Médico: Línea de tiempo interactiva potente y moderna.
+ * Sincronizado con Documentos y filtrado por especialidad.
  */
 public class HistorialActivity extends AppCompatActivity {
 
     private RecyclerView rvHistorial;
-    private TextView tvEmpty;
-    private MedicalRepository repository;
-    private ActivityResultLauncher<Intent> filePickerLauncher;
-    private String currentLinkingCitaId = "";
+    private TextView tvVacio;
+    private RepositorioMedico repositorio;
+    private ActivityResultLauncher<Intent> lanzadorSelectorArchivos;
+    private String idCitaVinculandoActual = "";
+    private String especCitaVinculandoActual = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_historial);
 
-        repository = MedicalRepository.getInstance(this);
+        repositorio = RepositorioMedico.getInstancia(this);
 
-        Toolbar toolbar = findViewById(R.id.toolbarHistorial);
-        setSupportActionBar(toolbar);
+        Toolbar barraHerramientas = findViewById(R.id.toolbarHistorial);
+        setSupportActionBar(barraHerramientas);
         if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        toolbar.setNavigationOnClickListener(v -> finish());
+        barraHerramientas.setNavigationOnClickListener(v -> finish());
 
         rvHistorial = findViewById(R.id.rvHistorial);
-        tvEmpty = findViewById(R.id.tvEmptyHistorial);
+        tvVacio = findViewById(R.id.tvEmptyHistorial);
 
-        filePickerLauncher = registerForActivityResult(
+        lanzadorSelectorArchivos = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        handleFileSelection(result.getData().getData());
+                resultado -> {
+                    if (resultado.getResultCode() == Activity.RESULT_OK && resultado.getData() != null) {
+                        manejarArchivoSeleccionado(resultado.getData().getData());
                     }
                 }
         );
 
-        loadHistorial();
+        cargarHistorial();
     }
 
-    private void loadHistorial() {
-        List<Cita> allCitas = repository.getAppointments(false);
-        List<Cita> attendedCitas = new ArrayList<>();
-        for (Cita c : allCitas) if (c.isAtendida()) attendedCitas.add(c);
-        Collections.reverse(attendedCitas);
-
-        List<Documento> allDocs = repository.getDocuments();
-
-        HistorialAdapter adapter = new HistorialAdapter(attendedCitas, allDocs);
-        rvHistorial.setLayoutManager(new LinearLayoutManager(this));
-        rvHistorial.setAdapter(adapter);
-
-        tvEmpty.setVisibility(attendedCitas.isEmpty() ? View.VISIBLE : View.GONE);
-        rvHistorial.setVisibility(attendedCitas.isEmpty() ? View.GONE : View.VISIBLE);
-    }
-
-    private void handleFileSelection(Uri uri) {
+    private void cargarHistorial() {
         try {
-            String date = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-            File internalFile = new File(getFilesDir(), "hist_" + System.currentTimeMillis());
-            
-            InputStream is = getContentResolver().openInputStream(uri);
-            FileOutputStream os = new FileOutputStream(internalFile);
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = is.read(buffer)) != -1) os.write(buffer, 0, read);
-            is.close(); os.close();
+            List<Cita> todasLasCitas = repositorio.getCitas(false);
+            Collections.sort(todasLasCitas, Cita.ComparadorFecha);
+            Collections.reverse(todasLasCitas);
 
-            Documento newDoc = new Documento(UUID.randomUUID().toString(), "Adjunto Historial", date, internalFile.getAbsolutePath(), "General", "Dr. Adjunto", "Clínica", "Informe");
-            newDoc.setLinkedCitaId(currentLinkingCitaId);
+            List<Documento> todosLosDocs = repositorio.getDocumentos();
+
+            AdaptadorHistorial adaptador = new AdaptadorHistorial(todasLasCitas, todosLosDocs);
+            rvHistorial.setLayoutManager(new LinearLayoutManager(this));
+            rvHistorial.setAdapter(adaptador);
+
+            tvVacio.setVisibility(todasLasCitas.isEmpty() ? View.VISIBLE : View.GONE);
+            rvHistorial.setVisibility(todasLasCitas.isEmpty() ? View.GONE : View.VISIBLE);
+        } catch (Exception e) {
+            Toast.makeText(this, "Error al cargar historial", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void manejarArchivoSeleccionado(Uri uri) {
+        try {
+            String nombreOrig = obtenerNombreArchivo(uri);
+            String fechaActual = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
+            File archivoInterno = new File(getFilesDir(), "hist_" + System.currentTimeMillis() + "_" + nombreOrig);
             
-            repository.addDocument(newDoc);
-            loadHistorial();
+            InputStream entrada = getContentResolver().openInputStream(uri);
+            FileOutputStream salida = new FileOutputStream(archivoInterno);
+            byte[] bufer = new byte[1024];
+            int leido;
+            if (entrada != null) {
+                while ((leido = entrada.read(bufer)) != -1) salida.write(bufer, 0, leido);
+                entrada.close();
+            }
+            salida.close();
+
+            Documento nuevoDoc = new Documento(UUID.randomUUID().toString(), nombreOrig, fechaActual, archivoInterno.getAbsolutePath(), especCitaVinculandoActual, "Consulta Histórica", "MediQR", "Evidencia");
+            nuevoDoc.setIdCitaVinculada(idCitaVinculandoActual);
+            
+            repositorio.agregarDocumento(nuevoDoc);
+            cargarHistorial();
             Toast.makeText(this, "Documento vinculado", Toast.LENGTH_SHORT).show();
 
         } catch (Exception e) {
-            Toast.makeText(this, "Error al vincular", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error al guardar archivo", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private class HistorialAdapter extends RecyclerView.Adapter<HistorialAdapter.ViewHolder> {
-        private List<Cita> citas;
-        private List<Documento> docs;
-
-        public HistorialAdapter(List<Cita> citas, List<Documento> docs) {
-            this.citas = citas; this.docs = docs;
-        }
-
-        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_historial, parent, false));
-        }
-
-        @Override public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Cita cita = citas.get(position);
-            holder.tvSpecialty.setText(cita.getEspecialidad());
-            holder.tvDoctor.setText("Dr. " + cita.getDoctor());
-            holder.tvDateTime.setText(cita.getFecha());
-            holder.tvLocation.setText(cita.getLugar());
-            holder.tvDiagnosis.setText(cita.getDiagnostico());
-
-            holder.vLineTop.setVisibility(position == 0 ? View.INVISIBLE : View.VISIBLE);
-            holder.vLineBottom.setVisibility(position == citas.size() - 1 ? View.INVISIBLE : View.VISIBLE);
-
-            // Integrated Documents
-            holder.layoutDocsContainer.removeAllViews();
-            boolean hasDocs = false;
-            for (Documento d : docs) {
-                if (d.getLinkedCitaId().equals(cita.getId()) || d.getEspecialidad().equalsIgnoreCase(cita.getEspecialidad())) {
-                    addDocToRow(holder.layoutDocsContainer, d);
-                    hasDocs = true;
+    private String obtenerNombreArchivo(Uri uri) {
+        String r = null;
+        if (uri != null && "content".equals(uri.getScheme())) {
+            try (Cursor c = getContentResolver().query(uri, null, null, null, null)) {
+                if (c != null && c.moveToFirst()) {
+                    int i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (i != -1) r = c.getString(i);
                 }
             }
-            holder.layoutDocHeader.setVisibility(hasDocs ? View.VISIBLE : View.GONE);
+        }
+        if (r == null && uri != null) {
+            r = uri.getPath();
+            if (r != null) {
+                int corte = r.lastIndexOf('/');
+                if (corte != -1) r = r.substring(corte + 1);
+            }
+        }
+        return r;
+    }
 
-            // Action Buttons
-            holder.btnAttach.setOnClickListener(v -> {
-                currentLinkingCitaId = cita.getId();
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("*/*");
-                filePickerLauncher.launch(intent);
+    private void mostrarFormularioRapido(Cita cita) {
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        View v = getLayoutInflater().inflate(R.layout.dialog_subir_archivo_rapido, null);
+        b.setView(v);
+
+        Spinner sEspec = v.findViewById(R.id.spinnerQuickEspec);
+        String[] especs = {"Cardiología", "Odontología", "Dermatología", "Medicina General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
+        sEspec.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, especs));
+        
+        for(int i=0; i<especs.length; i++) if(especs[i].equalsIgnoreCase(cita.getEspecialidad())) sEspec.setSelection(i);
+
+        AlertDialog d = b.create();
+        v.findViewById(R.id.btnQuickSeleccionar).setOnClickListener(view -> {
+            idCitaVinculandoActual = cita.getId();
+            especCitaVinculandoActual = sEspec.getSelectedItem().toString();
+            Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+            i.setType("*/*");
+            lanzadorSelectorArchivos.launch(i);
+            d.dismiss();
+        });
+        v.findViewById(R.id.btnQuickCancelar).setOnClickListener(view -> d.dismiss());
+        d.show();
+    }
+
+    private void mostrarDialogoEdicionPotente(Cita cita) {
+        AlertDialog.Builder constructor = new AlertDialog.Builder(this);
+        View v = getLayoutInflater().inflate(R.layout.dialog_editar_historial, null);
+        constructor.setView(v);
+
+        Spinner sEspec = v.findViewById(R.id.spinnerHistEspecialidad);
+        TextInputEditText eDoc = v.findViewById(R.id.editHistDoctor);
+        TextInputEditText eFecha = v.findViewById(R.id.editHistFecha);
+        TextInputEditText eHora = v.findViewById(R.id.editHistHora);
+        TextInputEditText eLugar = v.findViewById(R.id.editHistLugar);
+        TextInputEditText eDiag = v.findViewById(R.id.editHistDiagnostico);
+        TextInputEditText eIndic = v.findViewById(R.id.editHistIndicaciones);
+
+        String[] especialidades = {"Cardiología", "Odontología", "Dermatología", "Medicina General", "Oftalmología", "Ginecología", "Pediatría", "Traumatología", "Otros"};
+        sEspec.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, especialidades));
+        for (int i = 0; i < especialidades.length; i++) if (especialidades[i].equalsIgnoreCase(cita.getEspecialidad())) sEspec.setSelection(i);
+
+        eDoc.setText(cita.getDoctor());
+        eFecha.setText(cita.getFecha());
+        eHora.setText(cita.getHora());
+        eLugar.setText(cita.getLugar());
+        eDiag.setText(cita.getDiagnostico());
+        eIndic.setText(cita.getTratamiento());
+
+        eFecha.setOnClickListener(view -> {
+            Calendar c = Calendar.getInstance();
+            new DatePickerDialog(this, (view1, anio, mes, dia) -> eFecha.setText(String.format(Locale.getDefault(), "%04d-%02d-%02d", anio, mes + 1, dia)), c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        AlertDialog dialogo = constructor.create();
+        v.findViewById(R.id.btnActualizarHistorial).setOnClickListener(view -> {
+            cita.setEspecialidad(sEspec.getSelectedItem().toString());
+            cita.setDoctor(eDoc.getText().toString());
+            cita.setFecha(eFecha.getText().toString());
+            cita.setHora(eHora.getText().toString());
+            cita.setLugar(eLugar.getText().toString());
+            cita.setDiagnostico(eDiag.getText().toString());
+            cita.setTratamiento(eIndic.getText().toString());
+            repositorio.guardarCita(cita);
+            cargarHistorial();
+            dialogo.dismiss();
+            Toast.makeText(this, "Registro actualizado", Toast.LENGTH_SHORT).show();
+        });
+
+        v.findViewById(R.id.btnEliminarHistorial).setOnClickListener(view -> {
+            new AlertDialog.Builder(this).setTitle("¿Eliminar registro?").setMessage("Se perderá del historial permanentemente.").setPositiveButton("Eliminar", (dialog, cual) -> {
+                repositorio.eliminarCita(cita.getId());
+                cargarHistorial();
+                dialogo.dismiss();
+            }).setNegativeButton("Cancelar", null).show();
+        });
+
+        v.findViewById(R.id.btnCancelarEdicionHist).setOnClickListener(view -> dialogo.dismiss());
+        dialogo.show();
+    }
+
+    private class AdaptadorHistorial extends RecyclerView.Adapter<AdaptadorHistorial.ViewHolder> {
+        private final List<Cita> listaCitas;
+        private final List<Documento> listaDocs;
+
+        public AdaptadorHistorial(List<Cita> citas, List<Documento> docs) {
+            this.listaCitas = citas; this.listaDocs = docs;
+        }
+
+        @NonNull @Override public ViewHolder onCreateViewHolder(@NonNull ViewGroup padre, int tipo) {
+            return new ViewHolder(LayoutInflater.from(padre.getContext()).inflate(R.layout.item_historial, padre, false));
+        }
+
+        @Override public void onBindViewHolder(@NonNull ViewHolder h, int pos) {
+            Cita cita = listaCitas.get(pos);
+            h.tvEspecialidad.setText(cita.getEspecialidad());
+            h.tvDoctor.setText("Dr. " + cita.getDoctor());
+            h.tvFechaHora.setText(cita.getFecha() + " " + (cita.getHora() != null ? cita.getHora() : ""));
+            h.tvLugar.setText(cita.getLugar());
+            h.tvDiagnostico.setText(cita.getDiagnostico());
+
+            h.vLineaArriba.setVisibility(pos == 0 ? View.INVISIBLE : View.VISIBLE);
+            h.vLineaAbajo.setVisibility(pos == getItemCount() - 1 ? View.INVISIBLE : View.VISIBLE);
+
+            if (cita.isAtendida()) h.tvStatus.setVisibility(View.GONE);
+            else h.tvStatus.setVisibility(View.VISIBLE);
+
+            h.contenedorDocs.removeAllViews();
+            for (Documento d : listaDocs) {
+                if (d != null && cita.getId().equals(d.getIdCitaVinculada())) agregarVistaDocumentoAnidado(h.contenedorDocs, d);
+            }
+            h.cabeceraDoc.setVisibility(h.contenedorDocs.getChildCount() > 0 ? View.VISIBLE : View.GONE);
+
+            h.btnAttach.setOnClickListener(v -> mostrarFormularioRapido(cita));
+            h.btnMenu.setOnClickListener(v -> mostrarDialogoEdicionPotente(cita));
+        }
+
+        private void agregarVistaDocumentoAnidado(LinearLayout contenedor, Documento doc) {
+            View vistaDoc = getLayoutInflater().inflate(R.layout.item_related_doc, contenedor, false);
+            ((TextView) vistaDoc.findViewById(R.id.tvSmallDocName)).setText(doc.getNombre());
+            
+            vistaDoc.findViewById(R.id.btnDeleteRelatedDoc).setOnClickListener(v -> {
+                new AlertDialog.Builder(HistorialActivity.this).setTitle("Eliminar archivo").setMessage("¿Deseas desvincularlo?").setPositiveButton("Eliminar", (dialog, which) -> {
+                    repositorio.eliminarDocumento(doc);
+                    cargarHistorial();
+                }).setNegativeButton("Cancelar", null).show();
             });
+
+            vistaDoc.setOnClickListener(v -> abrirArchivoClinico(doc));
+            contenedor.addView(vistaDoc);
         }
 
-        private void addDocToRow(LinearLayout container, Documento doc) {
-            View v = getLayoutInflater().inflate(R.layout.item_related_doc, container, false);
-            ((TextView) v.findViewById(R.id.tvSmallDocName)).setText(doc.getTipo() + ": " + doc.getNombre());
-            v.setOnClickListener(view -> openFile(doc));
-            container.addView(v);
-        }
-
-        @Override public int getItemCount() { return citas.size(); }
+        @Override public int getItemCount() { return listaCitas.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvSpecialty, tvDoctor, tvDateTime, tvLocation, tvDiagnosis;
-            LinearLayout layoutDocsContainer, layoutDocHeader;
-            View vLineTop, vLineBottom;
-            Button btnAttach;
+            TextView tvEspecialidad, tvDoctor, tvFechaHora, tvLugar, tvDiagnostico, tvStatus;
+            LinearLayout contenedorDocs, cabeceraDoc;
+            View vLineaArriba, vLineaAbajo;
+            ImageButton btnMenu; MaterialButton btnAttach;
 
             public ViewHolder(@NonNull View v) {
                 super(v);
-                tvSpecialty = v.findViewById(R.id.tvHistSpecialty);
+                tvEspecialidad = v.findViewById(R.id.tvHistSpecialty);
                 tvDoctor = v.findViewById(R.id.tvHistDoctor);
-                tvDateTime = v.findViewById(R.id.tvHistDateTime);
-                tvLocation = v.findViewById(R.id.tvHistLocation);
-                tvDiagnosis = v.findViewById(R.id.tvHistDiagnosis);
-                layoutDocsContainer = v.findViewById(R.id.layoutRelatedDocs);
-                layoutDocHeader = v.findViewById(R.id.layoutDocHeader);
-                vLineTop = v.findViewById(R.id.timeline_top);
-                vLineBottom = v.findViewById(R.id.timeline_bottom);
+                tvFechaHora = v.findViewById(R.id.tvHistDateTime);
+                tvLugar = v.findViewById(R.id.tvHistLocation);
+                tvDiagnostico = v.findViewById(R.id.tvHistDiagnosis);
+                tvStatus = v.findViewById(R.id.tvHistStatus);
+                contenedorDocs = v.findViewById(R.id.layoutRelatedDocs);
+                cabeceraDoc = v.findViewById(R.id.layoutDocHeader);
+                vLineaArriba = v.findViewById(R.id.timeline_top);
+                vLineaAbajo = v.findViewById(R.id.timeline_bottom);
+                btnMenu = v.findViewById(R.id.btnHistMenu);
                 btnAttach = v.findViewById(R.id.btnAttachDoc);
             }
         }
     }
 
-    private void openFile(Documento doc) {
-        File file = new File(doc.getRuta());
-        if (!file.exists()) { Toast.makeText(this, "Archivo no disponible", Toast.LENGTH_SHORT).show(); return; }
-        Uri uri = FileProvider.getUriForFile(this, "com.mediqr.android.fileprovider", file);
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, getContentResolver().getType(uri));
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        try { startActivity(intent); } catch (Exception e) { Toast.makeText(this, "Sin visor compatible", Toast.LENGTH_SHORT).show(); }
+    private void abrirArchivoClinico(Documento doc) {
+        try {
+            File archivo = new File(doc.getRuta());
+            if (!archivo.exists()) return;
+            Uri uri = FileProvider.getUriForFile(this, "com.mediqr.android.fileprovider", archivo);
+            Intent intencion = new Intent(Intent.ACTION_VIEW);
+            intencion.setDataAndType(uri, getContentResolver().getType(uri));
+            intencion.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intencion);
+        } catch (Exception e) {
+            Toast.makeText(this, "Sin visor compatible", Toast.LENGTH_SHORT).show();
+        }
     }
 }

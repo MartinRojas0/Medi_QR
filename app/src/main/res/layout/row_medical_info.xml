@@ -55,6 +55,6 @@
         android:layout_width="20dp"
         android:layout_height="20dp"
         android:src="@android:drawable/ic_menu_edit"
-        app:tint="@color/divider" />
+        app:tint="@color/text_secondary" />
 
 </LinearLayout>

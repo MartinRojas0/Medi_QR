@@ -13,151 +13,151 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
-import com.mediqr.android.data.MedicalRepository;
-import com.mediqr.android.models.PatientProfile;
+import com.mediqr.android.datos.RepositorioMedico;
+import com.mediqr.android.modelos.PerfilPaciente;
 
 /**
- * SaludFragment: Deeply integrated and crash-resistant clinical record.
+ * Fragmento de Salud: Expediente clínico digital completo.
  */
 public class SaludFragment extends Fragment {
 
-    private MedicalRepository repository;
-    private View rowBlood, rowAllergies, rowMeds, rowChronic, rowVaccines, rowSurgeries;
-    private MaterialCardView cardAlert;
-    private TextView tvAlertText;
+    private RepositorioMedico repositorio;
+    private View filaSangre, filaAlergias, filaMeds, filaCronicas, filaVacunas, filaCirugias;
+    private MaterialCardView tarjetaAlerta;
+    private TextView tvTextoAlerta;
 
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflador, ViewGroup contenedor,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_salud, container, false);
+        return inflador.inflate(R.layout.fragment_salud, contenedor, false);
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    public void onViewCreated(@NonNull View vista, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(vista, savedInstanceState);
         
         try {
-            repository = MedicalRepository.getInstance(requireContext());
+            repositorio = RepositorioMedico.getInstancia(requireContext());
 
-            // Safe binding with null checks
-            cardAlert = view.findViewById(R.id.cardCriticalAlert);
-            tvAlertText = view.findViewById(R.id.tvCriticalAllergies);
+            tarjetaAlerta = vista.findViewById(R.id.cardCriticalAlert);
+            tvTextoAlerta = vista.findViewById(R.id.tvCriticalAllergies);
 
-            rowBlood = view.findViewById(R.id.rowBlood);
-            rowAllergies = view.findViewById(R.id.rowAllergies);
-            rowMeds = view.findViewById(R.id.rowMeds);
-            rowChronic = view.findViewById(R.id.rowChronic);
-            rowVaccines = view.findViewById(R.id.rowVaccines);
-            rowSurgeries = view.findViewById(R.id.rowSurgeries);
+            filaSangre = vista.findViewById(R.id.rowBlood);
+            filaAlergias = vista.findViewById(R.id.rowAllergies);
+            filaMeds = vista.findViewById(R.id.rowMeds);
+            filaCronicas = vista.findViewById(R.id.rowChronic);
+            filaVacunas = vista.findViewById(R.id.rowVaccines);
+            filaCirugias = vista.findViewById(R.id.rowSurgeries);
 
-            initUI();
+            inicializarInterfaz();
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(getContext(), "Error al cargar expediente", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Error al cargar el expediente clínico", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void initUI() {
-        setupRow(rowBlood, "Grupo Sanguíneo", R.drawable.ic_heart, v -> showBloodTypeDialog());
-        setupRow(rowAllergies, "Alergias", R.drawable.ic_health, v -> showEditDialog("Alergias", "allergies"));
-        setupRow(rowMeds, "Medicamentos", R.drawable.ic_medication, v -> showEditDialog("Medicamentos", "meds"));
-        setupRow(rowChronic, "Condiciones Crónicas", R.drawable.ic_history, v -> showEditDialog("Condiciones", "chronic"));
-        
-        setupRow(rowVaccines, "Vacunas", R.drawable.ic_appointments, v -> 
-                Toast.makeText(getContext(), "Historial de vacunas en desarrollo", Toast.LENGTH_SHORT).show());
-        setupRow(rowSurgeries, "Cirugías", R.drawable.ic_documents, v -> 
-                Toast.makeText(getContext(), "Módulo de cirugías en desarrollo", Toast.LENGTH_SHORT).show());
+    private void inicializarInterfaz() {
+        configurarFila(filaSangre, "Grupo Sanguíneo", R.drawable.ic_heart, v -> mostrarDialogoSangre());
+        configurarFila(filaAlergias, "Alergias", R.drawable.ic_health, v -> mostrarDialogoEdicion("Alergias", "alergias"));
+        configurarFila(filaMeds, "Medicamentos", R.drawable.ic_medication, v -> mostrarDialogoEdicion("Medicamentos", "meds"));
+        configurarFila(filaCronicas, "Condiciones Crónicas", R.drawable.ic_history, v -> mostrarDialogoEdicion("Condiciones", "cronicas"));
+        configurarFila(filaVacunas, "Vacunas", R.drawable.ic_appointments, v -> mostrarDialogoEdicion("Vacunas", "vacunas"));
+        configurarFila(filaCirugias, "Cirugías", R.drawable.ic_documents, v -> mostrarDialogoEdicion("Cirugías", "cirugias"));
 
-        loadData();
+        cargarDatos();
     }
 
-    private void setupRow(View row, String label, int iconRes, View.OnClickListener listener) {
-        if (row != null) {
-            TextView tvLabel = row.findViewById(R.id.rowLabel);
-            ImageView ivIcon = row.findViewById(R.id.rowIcon);
-            if (tvLabel != null) tvLabel.setText(label);
-            if (ivIcon != null) ivIcon.setImageResource(iconRes);
-            row.setOnClickListener(listener);
+    private void configurarFila(View fila, String etiqueta, int iconoRes, View.OnClickListener escuchador) {
+        if (fila != null) {
+            TextView tvEtiqueta = fila.findViewById(R.id.rowLabel);
+            ImageView ivIcono = fila.findViewById(R.id.rowIcon);
+            if (tvEtiqueta != null) tvEtiqueta.setText(etiqueta);
+            if (ivIcono != null) ivIcono.setImageResource(iconoRes);
+            fila.setOnClickListener(escuchador);
         }
     }
 
-    private void loadData() {
-        if (!isAdded() || repository == null) return;
+    private void cargarDatos() {
+        if (!isAdded() || repositorio == null) return;
         
-        PatientProfile profile = repository.getProfile();
-        if (profile == null) return;
+        PerfilPaciente perfil = repositorio.getPerfil();
+        if (perfil == null) return;
         
-        updateRowValue(rowBlood, profile.getBloodType());
-        updateRowValue(rowAllergies, profile.getAllergies());
-        updateRowValue(rowMeds, profile.getCurrentMedications());
-        updateRowValue(rowChronic, profile.getChronicConditions());
-        updateRowValue(rowVaccines, "Esquema completo");
-        updateRowValue(rowSurgeries, "Sin registros");
+        actualizarValorFila(filaSangre, perfil.getTipoSangre());
+        actualizarValorFila(filaAlergias, perfil.getAlergias());
+        actualizarValorFila(filaMeds, perfil.getMedicamentosActuales());
+        actualizarValorFila(filaCronicas, perfil.getCondicionesCronicas());
+        actualizarValorFila(filaVacunas, perfil.getVacunas());
+        actualizarValorFila(filaCirugias, perfil.getCirugias());
 
-        // UI Feedback Connection
-        if (cardAlert != null) {
-            String allergies = profile.getAllergies().toLowerCase();
-            if (allergies.contains("grave") || allergies.contains("penicilina") || allergies.contains("anafil")) {
-                cardAlert.setVisibility(View.VISIBLE);
-                if (tvAlertText != null) tvAlertText.setText("RIESGO MÉDICO: " + profile.getAllergies());
+        if (tarjetaAlerta != null) {
+            String alergias = perfil.getAlergias().toLowerCase();
+            if (alergias.contains("grave") || alergias.contains("penicilina") || alergias.contains("anafil")) {
+                tarjetaAlerta.setVisibility(View.VISIBLE);
+                if (tvTextoAlerta != null) tvTextoAlerta.setText("RIESGO MÉDICO: " + perfil.getAlergias());
             } else {
-                cardAlert.setVisibility(View.GONE);
+                tarjetaAlerta.setVisibility(View.GONE);
             }
         }
     }
 
-    private void updateRowValue(View row, String value) {
-        if (row != null) {
-            TextView tvValue = row.findViewById(R.id.rowValue);
-            if (tvValue != null) tvValue.setText(value != null ? value : "No especificado");
+    private void actualizarValorFila(View fila, String valor) {
+        if (fila != null) {
+            TextView tvValor = fila.findViewById(R.id.rowValue);
+            if (tvValor != null) tvValor.setText(valor != null && !valor.isEmpty() ? valor : "No especificado");
         }
     }
 
-    private void showEditDialog(String title, String fieldType) {
+    private void mostrarDialogoEdicion(String titulo, String tipoCampo) {
         if (!isAdded()) return;
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Actualizar " + title);
+        AlertDialog.Builder constructor = new AlertDialog.Builder(requireContext());
+        constructor.setTitle("Actualizar " + titulo);
         
-        View view = getLayoutInflater().inflate(R.layout.dialog_edit_simple, null);
-        final TextInputEditText input = view.findViewById(R.id.editSimpleValue);
+        View vista = getLayoutInflater().inflate(R.layout.dialog_edit_simple, null);
+        final TextInputEditText entrada = vista.findViewById(R.id.editSimpleValue);
         
-        PatientProfile p = repository.getProfile();
-        if (fieldType.equals("allergies")) input.setText(p.getAllergies());
-        else if (fieldType.equals("chronic")) input.setText(p.getChronicConditions());
-        else if (fieldType.equals("meds")) input.setText(p.getCurrentMedications());
+        PerfilPaciente p = repositorio.getPerfil();
+        if (tipoCampo.equals("alergias")) entrada.setText(p.getAlergias());
+        else if (tipoCampo.equals("cronicas")) entrada.setText(p.getCondicionesCronicas());
+        else if (tipoCampo.equals("meds")) entrada.setText(p.getMedicamentosActuales());
+        else if (tipoCampo.equals("vacunas")) entrada.setText(p.getVacunas());
+        else if (tipoCampo.equals("cirugias")) entrada.setText(p.getCirugias());
 
-        builder.setView(view);
-        builder.setPositiveButton("Guardar", (dialog, which) -> {
-            String val = input.getText().toString().trim();
-            if (!val.isEmpty()) confirmSave(fieldType, val);
+        constructor.setView(vista);
+        constructor.setPositiveButton("Guardar", (dialogo, cual) -> {
+            String val = entrada.getText().toString().trim();
+            confirmarGuardado(tipoCampo, val);
         });
-        builder.setNegativeButton("Cerrar", null);
-        builder.show();
+        constructor.setNegativeButton("Cerrar", null);
+        constructor.show();
     }
 
-    private void showBloodTypeDialog() {
+    private void mostrarDialogoSangre() {
         if (!isAdded()) return;
-        String[] types = {"A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"};
+        String[] tipos = {"A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"};
         new AlertDialog.Builder(requireContext())
                 .setTitle("Seleccionar Tipo de Sangre")
-                .setItems(types, (dialog, which) -> confirmSave("blood", types[which]))
+                .setItems(tipos, (dialogo, cual) -> confirmarGuardado("sangre", tipos[cual]))
                 .show();
     }
 
-    private void confirmSave(String field, String value) {
+    private void confirmarGuardado(String campo, String valor) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar Cambios")
                 .setMessage("¿Estás seguro de actualizar tu información médica?")
-                .setPositiveButton("Confirmar", (dialog, which) -> {
-                    PatientProfile p = repository.getProfile();
-                    if (field.equals("allergies")) p.setAllergies(value);
-                    else if (field.equals("blood")) p.setBloodType(value);
-                    else if (field.equals("chronic")) p.setChronicConditions(value);
-                    else if (field.equals("meds")) p.setCurrentMedications(value);
+                .setPositiveButton("Confirmar", (dialogo, cual) -> {
+                    PerfilPaciente p = repositorio.getPerfil();
+                    if (campo.equals("alergias")) p.setAlergias(valor);
+                    else if (campo.equals("sangre")) p.setTipoSangre(valor);
+                    else if (campo.equals("cronicas")) p.setCondicionesCronicas(valor);
+                    else if (campo.equals("meds")) p.setMedicamentosActuales(valor);
+                    else if (campo.equals("vacunas")) p.setVacunas(valor);
+                    else if (campo.equals("cirugias")) p.setCirugias(valor);
                     
-                    repository.saveHealthData(p.getBloodType(), p.getAllergies(), p.getChronicConditions(), p.getCurrentMedications());
-                    loadData();
-                    Toast.makeText(getContext(), "Información actualizada", Toast.LENGTH_SHORT).show();
+                    repositorio.guardarDatosSalud(p.getTipoSangre(), p.getAlergias(), p.getCondicionesCronicas(), 
+                            p.getMedicamentosActuales(), p.getVacunas(), p.getCirugias());
+                    cargarDatos();
+                    Toast.makeText(getContext(), "Información médica actualizada", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();

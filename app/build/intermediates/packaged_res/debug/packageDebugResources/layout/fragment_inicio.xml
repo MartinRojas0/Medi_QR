@@ -165,21 +165,29 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- SOS Button: Floating Triangular Red with Glow -->
+    <!-- SOS Button: Círculo rojo limpio con ! y SOS -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/sosButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_margin="12dp"
-        android:backgroundTint="@android:color/transparent"
-        android:background="@drawable/sos_button_glow"
-        app:icon="@drawable/sos_triangle_background"
-        app:iconSize="48dp"
-        app:iconGravity="textStart"
-        app:iconTint="@null"
+        android:layout_width="86dp"
+        android:layout_height="86dp"
+        android:layout_margin="20dp"
+        android:backgroundTint="#EF4444"
+        android:insetLeft="0dp"
+        android:insetTop="0dp"
+        android:insetRight="0dp"
+        android:insetBottom="0dp"
         android:padding="0dp"
-        app:elevation="12dp"
-        app:strokeWidth="0dp"
+        android:text="SOS"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:icon="@drawable/ic_sos_new"
+        app:iconGravity="textTop"
+        app:iconPadding="0dp"
+        app:iconSize="38dp"
+        app:iconTint="@color/white"
+        app:cornerRadius="43dp"
+        app:elevation="8dp"
         android:stateListAnimator="@null"
         app:layout_anchor="@id/homeScrollView"
         app:layout_anchorGravity="top|end" />

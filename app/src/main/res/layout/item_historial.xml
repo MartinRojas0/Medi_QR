@@ -7,24 +7,21 @@
     android:paddingStart="16dp"
     android:paddingEnd="16dp">
 
-    <!-- Timeline indicator -->
+    <!-- Línea de Tiempo -->
     <LinearLayout
         android:layout_width="32dp"
         android:layout_height="match_parent"
         android:gravity="center_horizontal"
         android:orientation="vertical">
-
         <View
             android:id="@+id/timeline_top"
             android:layout_width="2dp"
             android:layout_height="16dp"
             android:background="@color/divider" />
-
         <View
-            android:layout_width="12dp"
-            android:layout_height="12dp"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
             android:background="@drawable/timeline_dot" />
-
         <View
             android:id="@+id/timeline_bottom"
             android:layout_width="2dp"
@@ -32,16 +29,19 @@
             android:background="@color/divider" />
     </LinearLayout>
 
-    <!-- Main Content Card -->
+    <!-- Tarjeta de Consulta -->
     <com.google.android.material.card.MaterialCardView
-        style="@style/PremiumCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="24dp"
-        app:cardElevation="4dp">
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="26dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="3dp"
+        app:cardBackgroundColor="@color/white"
+        app:strokeColor="#F1F5F9"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -49,10 +49,11 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- Header: Specialty & Doctor -->
+            <!-- Cabecera: Título, Botón + y Editar -->
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical">
 
                 <TextView
                     android:id="@+id/tvHistSpecialty"
@@ -61,64 +62,108 @@
                     android:text="Especialidad"
                     android:textColor="@color/primary"
                     android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:layout_alignParentStart="true"
+                    android:layout_toStartOf="@id/layoutActions" />
 
-                <TextView
-                    android:id="@+id/tvHistDateTime"
+                <LinearLayout
+                    android:id="@+id/layoutActions"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
-                    android:text="Fecha"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAttachDoc"
+                        style="@style/Widget.MaterialComponents.Button.Icon"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="8dp"
+                        android:padding="0dp"
+                        android:insetLeft="0dp"
+                        android:insetTop="0dp"
+                        android:insetRight="0dp"
+                        android:insetBottom="0dp"
+                        app:icon="@android:drawable/ic_input_add"
+                        app:iconSize="20dp"
+                        app:iconTint="@color/primary"
+                        app:backgroundTint="@android:color/transparent"
+                        app:elevation="0dp" />
+
+                    <ImageButton
+                        android:id="@+id/btnHistMenu"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_edit"
+                        app:tint="@color/text_secondary" />
+                </LinearLayout>
             </RelativeLayout>
+
+            <TextView
+                android:id="@+id/tvHistDateTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Fecha de consulta"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvHistStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="PENDIENTE"
+                android:textColor="@color/sos_red"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvHistDoctor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Dr. Nombre Apellido"
+                android:layout_marginTop="12dp"
+                android:text="Médico"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvHistLocation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Clínica San Borja"
+                android:text="Ubicación"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
-            <!-- Diagnosis & Treatment Section -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginVertical="16dp" />
+                android:background="#F1F5F9"
+                android:layout_marginVertical="12dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="DIAGNÓSTICO Y TRATAMIENTO"
+                android:text="DIAGNÓSTICO"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:layout_marginBottom="8dp"/>
+                android:letterSpacing="0.05" />
 
             <TextView
                 android:id="@+id/tvHistDiagnosis"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Simulación de diagnóstico médico preventivo y control de rutina."
+                android:layout_marginTop="4dp"
+                android:text="Detalles del diagnóstico..."
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:lineSpacingExtra="4dp" />
+                android:textSize="13sp" />
 
-            <!-- Related Documents Section -->
+            <!-- Sección de Documentos -->
             <LinearLayout
                 android:id="@+id/layoutDocHeader"
                 android:layout_width="match_parent"
@@ -129,18 +174,17 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="@color/divider"
-                    android:layout_marginVertical="16dp" />
+                    android:background="#F1F5F9"
+                    android:layout_marginVertical="12dp" />
 
                 <TextView
-                    android:id="@+id/tvDocTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DOCUMENTOS ADJUNTOS"
+                    android:text="ARCHIVOS ADJUNTOS"
                     android:textColor="@color/primary"
                     android:textSize="10sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
 
                 <LinearLayout
                     android:id="@+id/layoutRelatedDocs"
@@ -148,23 +192,6 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />
             </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginVertical="12dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAttachDoc"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:text="+ ADJUNTAR ARCHIVO"
-                android:textColor="@color/primary"
-                android:textSize="11sp"
-                app:icon="@android:drawable/ic_input_add" />
 
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
