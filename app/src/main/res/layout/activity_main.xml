@@ -14,15 +14,15 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
-        android:layout_height="62dp"
+        android:layout_height="58dp"
         android:background="@color/card_background"
         app:elevation="16dp"
         app:menu="@menu/bottom_navigation_menu"
         app:itemIconTint="@color/bottom_nav_colors"
         app:itemTextColor="@color/bottom_nav_colors"
-        app:itemIconSize="24dp"
+        app:itemIconSize="28dp"
         app:labelVisibilityMode="labeled"
-        app:itemPaddingTop="10dp"
+        app:itemPaddingTop="2dp"
         app:itemPaddingBottom="2dp" />
 
 </LinearLayout>
