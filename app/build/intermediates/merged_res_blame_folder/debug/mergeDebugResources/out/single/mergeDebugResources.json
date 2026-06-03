@@ -72,6 +72,10 @@
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\color\\selector_nav_color.xml"
     },
     {
+        "merged": "com.mediqr.android.app-debug-32:/layout_fragment_salud.xml.flat",
+        "source": "com.mediqr.android.app-main-34:/layout/fragment_salud.xml"
+    },
+    {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_activity_login.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\layout\\activity_login.xml"
     },
@@ -94,6 +98,10 @@
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_dialog_edit_simple.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\layout\\dialog_edit_simple.xml"
+    },
+    {
+        "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_dialog_subir_archivo_rapido.xml.flat",
+        "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\layout\\dialog_subir_archivo_rapido.xml"
     },
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_activity_historial.xml.flat",
@@ -142,6 +150,10 @@
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_item_documento.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\layout\\item_documento.xml"
+    },
+    {
+        "merged": "com.mediqr.android.app-debug-32:/layout_activity_main.xml.flat",
+        "source": "com.mediqr.android.app-main-34:/layout/activity_main.xml"
     },
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\drawable_ic_launcher_background.xml.flat",
@@ -242,10 +254,6 @@
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\drawable_ic_appointments.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\drawable\\ic_appointments.xml"
-    },
-    {
-        "merged": "com.mediqr.android.app-debug-32:/layout_dialog_subir_archivo_rapido.xml.flat",
-        "source": "com.mediqr.android.app-main-34:/layout/dialog_subir_archivo_rapido.xml"
     },
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\drawable_ic_heart.xml.flat",

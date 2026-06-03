@@ -77,27 +77,39 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnAttachDoc"
                         style="@style/Widget.MaterialComponents.Button.Icon"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="8dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:padding="0dp"
+                        app:icon="@android:drawable/ic_input_add"
+                        app:iconSize="24dp"
+                        app:iconTint="@color/primary"
+                        app:iconGravity="textStart"
+                        app:backgroundTint="@color/primary_light"
+                        app:cornerRadius="21dp"
+                        app:elevation="0dp"
                         android:insetLeft="0dp"
                         android:insetTop="0dp"
                         android:insetRight="0dp"
                         android:insetBottom="0dp"
-                        app:icon="@android:drawable/ic_input_add"
-                        app:iconSize="20dp"
-                        app:iconTint="@color/primary"
-                        app:backgroundTint="@android:color/transparent"
-                        app:elevation="0dp" />
+                        android:layout_marginEnd="8dp" />
 
-                    <ImageButton
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnHistMenu"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_edit"
-                        app:tint="@color/text_secondary" />
+                        style="@style/Widget.MaterialComponents.Button.Icon"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:padding="0dp"
+                        app:icon="@android:drawable/ic_menu_edit"
+                        app:iconSize="22dp"
+                        app:iconTint="@color/text_secondary"
+                        app:iconGravity="textStart"
+                        app:backgroundTint="#F1F5F9"
+                        app:cornerRadius="21dp"
+                        app:elevation="0dp"
+                        android:insetLeft="0dp"
+                        android:insetTop="0dp"
+                        android:insetRight="0dp"
+                        android:insetBottom="0dp" />
                 </LinearLayout>
             </RelativeLayout>
 

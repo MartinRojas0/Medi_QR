@@ -52,4 +52,17 @@ public class PrincipalActivity extends AppCompatActivity {
     public void navegarATab(int idItem) {
         navegacionInferior.setSelectedItemId(idItem);
     }
+
+    /**
+     * Maneja el botón de retroceso del sistema para evitar cierres accidentales.
+     * Si no estamos en el Inicio, regresamos a él.
+     */
+    @Override
+    public void onBackPressed() {
+        if (navegacionInferior.getSelectedItemId() != R.id.navigation_home) {
+            navegarATab(R.id.navigation_home);
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
