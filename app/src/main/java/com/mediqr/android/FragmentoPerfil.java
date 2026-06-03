@@ -40,7 +40,7 @@ import java.util.List;
 /**
  * Fragmento de Perfil: Información del usuario y exportación avanzada a PDF mediante HTML.
  */
-public class PerfilFragment extends Fragment {
+public class FragmentoPerfil extends Fragment {
 
     private TextView tvNombre, tvEdad, tvDni, tvCorreo, tvTelefono, tvDireccion, tvCabeceraNombre;
     private RepositorioMedico repositorio;

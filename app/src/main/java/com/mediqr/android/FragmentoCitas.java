@@ -28,7 +28,7 @@ import java.util.UUID;
 /**
  * Fragmento de Citas: Gestión de consultas médicas programadas.
  */
-public class CitasFragment extends Fragment {
+public class FragmentoCitas extends Fragment {
 
     private RecyclerView rvCitas;
     private TextView tvVacio;

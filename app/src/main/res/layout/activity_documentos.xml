@@ -14,10 +14,30 @@
         app:titleTextColor="@color/primary"
         app:navigationIcon="?attr/homeAsUpIndicator" />
 
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardSearchDocs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="64dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp"
+        app:strokeColor="#F1F5F9"
+        app:strokeWidth="1dp">
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchDocs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:iconifiedByDefault="false"
+            app:queryHint="Buscar por nombre o nota..."
+            app:queryBackground="@android:color/transparent" />
+    </com.google.android.material.card.MaterialCardView>
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize">
+        android:layout_marginTop="120dp">
 
         <LinearLayout
             android:layout_width="match_parent"

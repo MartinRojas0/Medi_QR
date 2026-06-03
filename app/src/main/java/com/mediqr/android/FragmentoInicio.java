@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * Fragmento de Inicio: Dashboard principal.
  */
-public class InicioFragment extends Fragment {
+public class FragmentoInicio extends Fragment {
 
     private ImageView qrImagenView;
     private TextView tvQRInfo;

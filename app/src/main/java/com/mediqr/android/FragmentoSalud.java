@@ -19,7 +19,7 @@ import com.mediqr.android.modelos.PerfilPaciente;
 /**
  * Fragmento de Salud: Expediente clínico digital completo.
  */
-public class SaludFragment extends Fragment {
+public class FragmentoSalud extends Fragment {
 
     private RepositorioMedico repositorio;
     private View filaSangre, filaAlergias, filaMeds, filaCronicas, filaVacunas, filaCirugias;

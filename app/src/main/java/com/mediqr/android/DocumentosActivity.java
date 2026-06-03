@@ -23,6 +23,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -36,6 +37,7 @@ import com.mediqr.android.modelos.Documento;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -47,20 +49,24 @@ import java.util.UUID;
 
 /**
  * Centro de Documentos Médicos: Gestión unificada de archivos.
- * Simplificado para pedir solo imagen y especialidad.
+ * Incluye buscador en tiempo real y filtrado por especialidades.
  */
 public class DocumentosActivity extends AppCompatActivity {
 
     private RecyclerView rvDocumentos, rvEspecialidades;
     private TextView tvEstadoVacio, tvTituloReciente;
-    private List<Documento> todosLosDocs, documentosAMostrar;
-    private List<String> listaEspecialidades;
+    private final List<Documento> todosLosDocs = new ArrayList<>();
+    private final List<Documento> documentosAMostrar = new ArrayList<>();
+    private final List<String> listaEspecialidades = new ArrayList<>();
     private AdaptadorDocs adaptadorDocs;
     private AdaptadorEspec adaptadorEspec;
     private RepositorioMedico repositorio;
     private ActivityResultLauncher<Intent> selectorArchivos;
-    private String especSeleccionada = "";
-    private String notaOpcional = "";
+    
+    private String filtroEspecialidad = null;
+    private String textoBusqueda = "";
+    private String especSeleccionadaParaSubir = "";
+    private String notaOpcionalParaSubir = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,11 +84,8 @@ public class DocumentosActivity extends AppCompatActivity {
         rvEspecialidades = findViewById(R.id.rvSpecialties);
         tvEstadoVacio = findViewById(R.id.tvEmptyState);
         tvTituloReciente = findViewById(R.id.tvRecentTitle);
+        SearchView searchView = findViewById(R.id.searchDocs);
         View btnAgregar = findViewById(R.id.btnUploadDocument);
-
-        todosLosDocs = new ArrayList<>();
-        documentosAMostrar = new ArrayList<>();
-        listaEspecialidades = new ArrayList<>();
 
         adaptadorDocs = new AdaptadorDocs(documentosAMostrar, this::confirmarEliminacion, this::abrirArchivo);
         rvDocumentos.setLayoutManager(new LinearLayoutManager(this));
@@ -98,45 +101,74 @@ public class DocumentosActivity extends AppCompatActivity {
             }
         });
 
+        if (searchView != null) {
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) { 
+                    textoBusqueda = query;
+                    aplicarFiltros();
+                    return true; 
+                }
+                @Override
+                public boolean onQueryTextChange(String newText) { 
+                    textoBusqueda = newText;
+                    aplicarFiltros();
+                    return true; 
+                }
+            });
+        }
+
         btnAgregar.setOnClickListener(v -> mostrarFormularioSimplificado());
         
-        cargar();
+        cargarDatos();
     }
 
-    private void cargar() {
-        todosLosDocs = repositorio.getDocumentos();
+    private void cargarDatos() {
+        List<Documento> actualList = repositorio.getDocumentos();
+        todosLosDocs.clear();
+        todosLosDocs.addAll(actualList);
+        
         Set<String> especs = new HashSet<>();
         for (Documento d : todosLosDocs) especs.add(d.getEspecialidad());
         listaEspecialidades.clear();
         listaEspecialidades.addAll(especs);
         Collections.sort(listaEspecialidades);
         adaptadorEspec.notifyDataSetChanged();
-        filtrar(filtroActual);
+        aplicarFiltros();
     }
 
-    private String filtroActual = null;
-    private void filtrar(String s) {
-        filtroActual = s;
+    private void aplicarFiltros() {
         documentosAMostrar.clear();
-        if (s == null) {
-            documentosAMostrar.addAll(todosLosDocs);
-        } else {
-            for (Documento d : todosLosDocs) {
-                if (d.getEspecialidad().equals(s)) documentosAMostrar.add(d);
+        String lowerBusqueda = textoBusqueda.toLowerCase();
+
+        for (Documento d : todosLosDocs) {
+            boolean cumpleEspec = (filtroEspecialidad == null || d.getEspecialidad().equals(filtroEspecialidad));
+            boolean cumpleTexto = (textoBusqueda.isEmpty() || 
+                                   d.getNombre().toLowerCase().contains(lowerBusqueda) || 
+                                   d.getEspecialidad().toLowerCase().contains(lowerBusqueda));
+            
+            if (cumpleEspec && cumpleTexto) {
+                documentosAMostrar.add(d);
             }
         }
+
         adaptadorDocs.notifyDataSetChanged();
+        
         if (tvTituloReciente != null) {
-            tvTituloReciente.setText(s == null ? "Todos los Documentos" : "Especialidad: " + s);
+            String titulo = (filtroEspecialidad == null) ? "Todos los Documentos" : "Especialidad: " + filtroEspecialidad;
+            if (!textoBusqueda.isEmpty()) titulo += " (Filtrado)";
+            tvTituloReciente.setText(titulo);
         }
+        
         if (tvEstadoVacio != null) {
             tvEstadoVacio.setVisibility(documentosAMostrar.isEmpty() ? View.VISIBLE : View.GONE);
         }
     }
 
     private void alHacerClickEspec(String s) {
-        if (s != null && s.equals(filtroActual)) filtrar(null);
-        else filtrar(s);
+        if (s != null && s.equals(filtroEspecialidad)) filtroEspecialidad = null;
+        else filtroEspecialidad = s;
+        aplicarFiltros();
     }
 
     private void mostrarFormularioSimplificado() {
@@ -152,8 +184,8 @@ public class DocumentosActivity extends AppCompatActivity {
 
         AlertDialog d = b.create();
         v.findViewById(R.id.btnQuickSeleccionar).setOnClickListener(view -> {
-            especSeleccionada = sEspec.getSelectedItem().toString();
-            notaOpcional = eNota.getText().toString().trim();
+            especSeleccionadaParaSubir = sEspec.getSelectedItem().toString();
+            notaOpcionalParaSubir = eNota.getText().toString().trim();
             Intent i = new Intent(Intent.ACTION_GET_CONTENT);
             i.setType("*/*");
             selectorArchivos.launch(i);
@@ -166,8 +198,9 @@ public class DocumentosActivity extends AppCompatActivity {
     private void manejarArchivoSeleccionado(Uri uri) {
         try {
             String nombreOrig = obtenerNombreArchivo(uri);
-            String fechaActual = new java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new java.util.Date());
-            File archivo = new File(getFilesDir(), "doc_" + System.currentTimeMillis() + "_" + nombreOrig);
+            String fechaActual = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new java.util.Date());
+            File archivo = new File(getFilesDir(), "doc_" + System.currentTimeMillis() + "_" + (nombreOrig != null ? nombreOrig : "adjunto"));
+            
             InputStream is = getContentResolver().openInputStream(uri);
             FileOutputStream os = new FileOutputStream(archivo);
             byte[] buf = new byte[1024];
@@ -178,10 +211,10 @@ public class DocumentosActivity extends AppCompatActivity {
             }
             os.close();
 
-            String nombreFinal = notaOpcional.isEmpty() ? "Documento " + especSeleccionada : notaOpcional;
-            Documento d = new Documento(UUID.randomUUID().toString(), nombreFinal, fechaActual, archivo.getAbsolutePath(), especSeleccionada, "Usuario", "MediQR", "Archivo");
+            String nombreFinal = (notaOpcionalParaSubir != null && !notaOpcionalParaSubir.isEmpty()) ? notaOpcionalParaSubir : "Documento " + especSeleccionadaParaSubir;
+            Documento d = new Documento(UUID.randomUUID().toString(), nombreFinal, fechaActual, archivo.getAbsolutePath(), especSeleccionadaParaSubir, "Usuario", "MediQR", "Archivo");
             repositorio.agregarDocumento(d);
-            cargar();
+            cargarDatos();
             Toast.makeText(this, "Documento guardado", Toast.LENGTH_SHORT).show();
             
         } catch (Exception e) {
@@ -191,7 +224,7 @@ public class DocumentosActivity extends AppCompatActivity {
 
     private String obtenerNombreArchivo(Uri uri) {
         String r = null;
-        if (uri.getScheme().equals("content")) {
+        if (uri != null && "content".equals(uri.getScheme())) {
             try (Cursor c = getContentResolver().query(uri, null, null, null, null)) {
                 if (c != null && c.moveToFirst()) {
                     int i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
@@ -199,7 +232,7 @@ public class DocumentosActivity extends AppCompatActivity {
                 }
             }
         }
-        if (r == null) {
+        if (r == null && uri != null) {
             r = uri.getPath();
             if (r != null) {
                 int corte = r.lastIndexOf('/');
@@ -212,7 +245,7 @@ public class DocumentosActivity extends AppCompatActivity {
     private void confirmarEliminacion(int pos) {
         new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Borrar este documento?").setPositiveButton("Sí", (d, w) -> {
             repositorio.eliminarDocumento(documentosAMostrar.get(pos));
-            cargar();
+            cargarDatos();
         }).setNegativeButton("No", null).show();
     }
 
@@ -262,7 +295,7 @@ public class DocumentosActivity extends AppCompatActivity {
                 h.vinc.setVisibility(View.GONE);
             }
 
-            h.i.setImageResource(d.getNombre().toLowerCase().contains(".pdf") ? android.R.drawable.ic_menu_agenda : android.R.drawable.ic_menu_gallery);
+            h.i.setImageResource(d.getNombre().toLowerCase().endsWith(".pdf") ? android.R.drawable.ic_menu_agenda : android.R.drawable.ic_menu_gallery);
             h.b.setOnClickListener(v -> eliminador.onAct(p));
             h.itemView.setOnClickListener(v -> abridor.onAct(p));
         }
