@@ -338,7 +338,7 @@ public class HistorialActivity extends AppCompatActivity {
             TextView tvEspecialidad, tvDoctor, tvFechaHora, tvLugar, tvDiagnostico, tvStatus;
             LinearLayout contenedorDocs, cabeceraDoc;
             View vLineaArriba, vLineaAbajo;
-            MaterialButton btnMenu, btnAttach;
+            ImageButton btnMenu, btnAttach;
 
             public ViewHolder(@NonNull View v) {
                 super(v);

@@ -111,12 +111,12 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Sección: Antecedentes y Prevención -->
+            <!-- Sección: Antecedentes Clínicos -->
             <TextView
                 style="@style/SectionTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Antecedentes y Prevención" />
+                android:text="Antecedentes Clínicos" />
 
             <com.google.android.material.card.MaterialCardView
                 style="@style/PremiumCard"
