@@ -26,6 +26,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -51,7 +52,7 @@ import java.util.UUID;
 
 /**
  * Actividad del Historial Médico: Línea de tiempo interactiva potente y moderna.
- * Sincronizado con Documentos y filtrado por especialidad.
+ * Incluye buscador integrado y sincronización con documentos vinculados.
  */
 public class HistorialActivity extends AppCompatActivity {
 
@@ -61,6 +62,11 @@ public class HistorialActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> lanzadorSelectorArchivos;
     private String idCitaVinculandoActual = "";
     private String especCitaVinculandoActual = "";
+    
+    private List<Cita> todasLasCitas = new ArrayList<>();
+    private List<Cita> citasFiltradas = new ArrayList<>();
+    private List<Documento> todosLosDocs = new ArrayList<>();
+    private AdaptadorHistorial adaptador;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +82,7 @@ public class HistorialActivity extends AppCompatActivity {
 
         rvHistorial = findViewById(R.id.rvHistorial);
         tvVacio = findViewById(R.id.tvEmptyHistorial);
+        SearchView searchView = findViewById(R.id.searchHistorial);
 
         lanzadorSelectorArchivos = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -86,33 +93,66 @@ public class HistorialActivity extends AppCompatActivity {
                 }
         );
 
+        if (searchView != null) {
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) { filtrarHistorial(query); return true; }
+                @Override
+                public boolean onQueryTextChange(String newText) { filtrarHistorial(newText); return true; }
+            });
+        }
+
         cargarHistorial();
     }
 
     private void cargarHistorial() {
         try {
-            List<Cita> todasLasCitas = repositorio.getCitas(false);
+            todasLasCitas = repositorio.getCitas(false);
             Collections.sort(todasLasCitas, Cita.ComparadorFecha);
             Collections.reverse(todasLasCitas);
+            todosLosDocs = repositorio.getDocumentos();
 
-            List<Documento> todosLosDocs = repositorio.getDocumentos();
+            citasFiltradas.clear();
+            citasFiltradas.addAll(todasLasCitas);
 
-            AdaptadorHistorial adaptador = new AdaptadorHistorial(todasLasCitas, todosLosDocs);
+            adaptador = new AdaptadorHistorial(citasFiltradas, todosLosDocs);
             rvHistorial.setLayoutManager(new LinearLayoutManager(this));
             rvHistorial.setAdapter(adaptador);
 
-            tvVacio.setVisibility(todasLasCitas.isEmpty() ? View.VISIBLE : View.GONE);
-            rvHistorial.setVisibility(todasLasCitas.isEmpty() ? View.GONE : View.VISIBLE);
+            actualizarEstadoVacio();
         } catch (Exception e) {
             Toast.makeText(this, "Error al cargar historial", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void filtrarHistorial(String texto) {
+        citasFiltradas.clear();
+        if (texto.isEmpty()) {
+            citasFiltradas.addAll(todasLasCitas);
+        } else {
+            String lower = texto.toLowerCase();
+            for (Cita c : todasLasCitas) {
+                if (c.getEspecialidad().toLowerCase().contains(lower) || 
+                    c.getDoctor().toLowerCase().contains(lower) ||
+                    c.getDiagnostico().toLowerCase().contains(lower)) {
+                    citasFiltradas.add(c);
+                }
+            }
+        }
+        if (adaptador != null) adaptador.notifyDataSetChanged();
+        actualizarEstadoVacio();
+    }
+
+    private void actualizarEstadoVacio() {
+        tvVacio.setVisibility(citasFiltradas.isEmpty() ? View.VISIBLE : View.GONE);
+        rvHistorial.setVisibility(citasFiltradas.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private void manejarArchivoSeleccionado(Uri uri) {
         try {
             String nombreOrig = obtenerNombreArchivo(uri);
             String fechaActual = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-            File archivoInterno = new File(getFilesDir(), "hist_" + System.currentTimeMillis() + "_" + nombreOrig);
+            File archivoInterno = new File(getFilesDir(), "hist_" + System.currentTimeMillis() + "_" + (nombreOrig != null ? nombreOrig : "adjunto"));
             
             InputStream entrada = getContentResolver().openInputStream(uri);
             FileOutputStream salida = new FileOutputStream(archivoInterno);
@@ -124,7 +164,7 @@ public class HistorialActivity extends AppCompatActivity {
             }
             salida.close();
 
-            Documento nuevoDoc = new Documento(UUID.randomUUID().toString(), nombreOrig, fechaActual, archivoInterno.getAbsolutePath(), especCitaVinculandoActual, "Consulta Histórica", "MediQR", "Evidencia");
+            Documento nuevoDoc = new Documento(UUID.randomUUID().toString(), nombreOrig != null ? nombreOrig : "Adjunto", fechaActual, archivoInterno.getAbsolutePath(), especCitaVinculandoActual, "Consulta", "MediQR", "Evidencia");
             nuevoDoc.setIdCitaVinculada(idCitaVinculandoActual);
             
             repositorio.agregarDocumento(nuevoDoc);
@@ -207,6 +247,11 @@ public class HistorialActivity extends AppCompatActivity {
         eFecha.setOnClickListener(view -> {
             Calendar c = Calendar.getInstance();
             new DatePickerDialog(this, (view1, anio, mes, dia) -> eFecha.setText(String.format(Locale.getDefault(), "%04d-%02d-%02d", anio, mes + 1, dia)), c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        eHora.setOnClickListener(view -> {
+            Calendar c = Calendar.getInstance();
+            new TimePickerDialog(this, (view1, h, m) -> eHora.setText(String.format(Locale.getDefault(), "%02d:%02d", h, m)), c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show();
         });
 
         AlertDialog dialogo = constructor.create();

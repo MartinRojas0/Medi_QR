@@ -160,6 +160,7 @@ id rvAppointments
 id rvDocuments
 id rvHistorial
 id rvSpecialties
+id searchHistorial
 id sosButton
 id sosProgressBar
 id spinnerDocSpecialty
