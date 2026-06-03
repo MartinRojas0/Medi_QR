@@ -20,9 +20,9 @@
         app:menu="@menu/bottom_navigation_menu"
         app:itemIconTint="@color/bottom_nav_colors"
         app:itemTextColor="@color/bottom_nav_colors"
-        app:itemIconSize="26dp"
+        app:itemIconSize="22dp"
         app:labelVisibilityMode="labeled"
-        app:itemPaddingTop="8dp"
-        app:itemPaddingBottom="2dp" />
+        app:itemPaddingTop="4dp"
+        app:itemPaddingBottom="10dp" />
 
 </LinearLayout>

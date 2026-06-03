@@ -32,12 +32,12 @@
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\drawable\\ic_statistics.xml"
     },
     {
-        "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\drawable_ic_documents.xml.flat",
-        "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\drawable\\ic_documents.xml"
-    },
-    {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_dialog_editar_historial.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\layout\\dialog_editar_historial.xml"
+    },
+    {
+        "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\drawable_ic_documents.xml.flat",
+        "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\drawable\\ic_documents.xml"
     },
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_activity_appointments.xml.flat",
@@ -64,16 +64,12 @@
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\drawable\\sos_button_background.xml"
     },
     {
-        "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\color_bottom_nav_colors.xml.flat",
-        "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\color\\bottom_nav_colors.xml"
-    },
-    {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\color_selector_nav_color.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\color\\selector_nav_color.xml"
     },
     {
-        "merged": "com.mediqr.android.app-debug-32:/layout_fragment_salud.xml.flat",
-        "source": "com.mediqr.android.app-main-34:/layout/fragment_salud.xml"
+        "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\color_bottom_nav_colors.xml.flat",
+        "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\color\\bottom_nav_colors.xml"
     },
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_activity_login.xml.flat",
@@ -182,6 +178,10 @@
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\drawable_ic_qr_placeholder.xml.flat",
         "source": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-main-34:\\drawable\\ic_qr_placeholder.xml"
+    },
+    {
+        "merged": "com.mediqr.android.app-debug-32:/layout_activity_historial.xml.flat",
+        "source": "com.mediqr.android.app-main-34:/layout/activity_historial.xml"
     },
     {
         "merged": "C:\\Users\\MARTIN\\.gradle\\daemon\\9.4.1\\com.mediqr.android.app-debug-32:\\layout_dialog_sos_premium.xml.flat",
