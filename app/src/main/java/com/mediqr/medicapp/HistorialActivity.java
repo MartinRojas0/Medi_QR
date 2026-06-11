@@ -1,4 +1,4 @@
-package com.mediqr.android;
+package com.mediqr.medicapp;
 
 import android.app.Activity;
 import android.app.DatePickerDialog;
@@ -12,11 +12,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,11 +29,10 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.mediqr.android.datos.RepositorioMedico;
-import com.mediqr.android.modelos.Cita;
-import com.mediqr.android.modelos.Documento;
+import com.mediqr.medicapp.datos.RepositorioMedico;
+import com.mediqr.medicapp.modelos.Cita;
+import com.mediqr.medicapp.modelos.Documento;
 
 import java.io.File;
 import java.io.FileOutputStream;

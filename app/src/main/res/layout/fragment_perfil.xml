@@ -203,6 +203,15 @@
             android:textSize="16sp"
             app:cornerRadius="12dp"
             android:layout_marginBottom="32dp" />
+        <Button
+            android:id="@+id/btnCerrarSesion"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="CERRAR SESIÓN"
+            android:backgroundTint="#EF4444"
+            app:cornerRadius="12dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp" />
 
     </LinearLayout>
 

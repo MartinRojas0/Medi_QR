@@ -1,8 +1,6 @@
-package com.mediqr.android;
+package com.mediqr.medicapp;
 
 import android.app.Activity;
-import android.app.DatePickerDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -31,15 +29,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
-import com.mediqr.android.datos.RepositorioMedico;
-import com.mediqr.android.modelos.Documento;
+import com.mediqr.medicapp.datos.RepositorioMedico;
+import com.mediqr.medicapp.modelos.Documento;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;

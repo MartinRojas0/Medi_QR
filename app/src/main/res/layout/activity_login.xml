@@ -36,7 +36,6 @@
             android:textSize="16sp"
             android:layout_marginBottom="48dp" />
 
-        <!-- Glassmorphism Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -59,7 +58,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textEmailAddress"
-                    android:textColor="@color/white" />
+                    android:textColor="@color/white"
+                    android:paddingVertical="12dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -72,13 +72,15 @@
                 app:boxStrokeColor="@color/white"
                 app:passwordToggleEnabled="true"
                 app:passwordToggleTint="#94A3B8"
+                app:endIconMode="password_toggle"
                 android:layout_marginBottom="24dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/passwordEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textPassword"
-                    android:textColor="@color/white" />
+                    android:textColor="@color/white"
+                    android:paddingVertical="12dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton
@@ -105,5 +107,4 @@
             android:textSize="14sp" />
 
     </LinearLayout>
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "689742125459",
+    "project_id": "mediqr-2702d",
+    "storage_bucket": "mediqr-2702d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689742125459:android:9c69d200a4599384ad7066",
+        "android_client_info": {
+          "package_name": "com.mediqr.medicapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEyalsUFP-nFPlyrNnKdWYh1T8qvKLlwI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

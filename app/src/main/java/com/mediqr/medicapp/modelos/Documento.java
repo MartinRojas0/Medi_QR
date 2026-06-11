@@ -1,4 +1,4 @@
-package com.mediqr.android.modelos;
+package com.mediqr.medicapp.modelos;
 
 import java.io.Serializable;
 

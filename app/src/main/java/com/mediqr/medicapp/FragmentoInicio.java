@@ -1,4 +1,4 @@
-package com.mediqr.android;
+package com.mediqr.medicapp;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -23,9 +23,9 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.zxing.BarcodeFormat;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
-import com.mediqr.android.datos.RepositorioMedico;
-import com.mediqr.android.modelos.Cita;
-import com.mediqr.android.modelos.PerfilPaciente;
+import com.mediqr.medicapp.datos.RepositorioMedico;
+import com.mediqr.medicapp.modelos.Cita;
+import com.mediqr.medicapp.modelos.PerfilPaciente;
 
 import java.util.List;
 
@@ -33,6 +33,8 @@ import java.util.List;
  * Fragmento de Inicio: Dashboard principal.
  */
 public class FragmentoInicio extends Fragment {
+
+    private static final String NUMERO_EMERGENCIA = "+51979398257";
 
     private ImageView qrImagenView;
     private TextView tvQRInfo;
@@ -61,7 +63,7 @@ public class FragmentoInicio extends Fragment {
         NestedScrollView scrollView = vista.findViewById(R.id.homeScrollView);
 
         inicializarInterfaz(vista);
-        
+
         if (scrollView != null && botonSOS != null) {
             scrollView.setOnScrollChangeListener((NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
                 if (scrollY > oldScrollY + 20 && botonSOS.getVisibility() == View.VISIBLE) ocultarSOS();
@@ -87,7 +89,7 @@ public class FragmentoInicio extends Fragment {
         v.findViewById(R.id.documentsLayout).setOnClickListener(view -> {
             startActivity(new Intent(getContext(), DocumentosActivity.class));
         });
-        
+
         v.findViewById(R.id.btnShareQRInfo).setOnClickListener(view -> {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("text/plain");
@@ -96,7 +98,7 @@ public class FragmentoInicio extends Fragment {
         });
 
         if (botonSOS != null) botonSOS.setOnClickListener(view -> mostrarFlujoSOS());
-        
+
         configurarTarjeta(v.findViewById(R.id.historyLayout), "Historial", R.drawable.ic_history);
         configurarTarjeta(v.findViewById(R.id.medicationLayout), "Ficha Médica", R.drawable.ic_heart);
         configurarTarjeta(v.findViewById(R.id.appointmentsLayout), "Citas", R.drawable.ic_appointments);
@@ -109,11 +111,7 @@ public class FragmentoInicio extends Fragment {
         ((ImageView) vistaRaiz.findViewById(R.id.cardIcon)).setImageResource(iconoRes);
     }
 
-    /**
-     * Mejora del Código QR: Versión corta y útil para emergencias.
-     */
     private void generarQR(PerfilPaciente p) {
-        // Contenido simplificado para emergencias
         contenidoCompartir = "🚨 EMERGENCIA MEDIQR\n" +
                 "Paciente: " + p.getNombreCompleto() + "\n" +
                 "Edad: " + p.getEdad() + " años\n" +
@@ -138,11 +136,11 @@ public class FragmentoInicio extends Fragment {
 
         configurarFilaResumen(resumenProxima, "Próxima: " + (proxima != null ? proxima.getEspecialidad() + " (" + proxima.getFecha() + ")" : "Sin citas"), R.drawable.ic_appointments, R.color.primary);
         configurarFilaResumen(resumenUltima, "Última: " + (ultima != null ? ultima.getEspecialidad() + " - Dr. " + ultima.getDoctor() : "Sin historial"), R.drawable.ic_history, R.color.accent);
-        
+
         PerfilPaciente p = repositorio.getPerfil();
         boolean tieneRiesgo = p.getAlergias().toLowerCase().contains("grave") || p.getAlergias().toLowerCase().contains("peni");
-        configurarFilaResumen(resumenAlertas, tieneRiesgo ? "ALERTA: " + p.getAlergias() : "Sin alertas críticas", 
-                tieneRiesgo ? android.R.drawable.ic_dialog_alert : R.drawable.ic_heart, 
+        configurarFilaResumen(resumenAlertas, tieneRiesgo ? "ALERTA: " + p.getAlergias() : "Sin alertas críticas",
+                tieneRiesgo ? android.R.drawable.ic_dialog_alert : R.drawable.ic_heart,
                 tieneRiesgo ? R.color.sos_red : R.color.text_secondary);
     }
 
@@ -180,7 +178,7 @@ public class FragmentoInicio extends Fragment {
     private void mostrarFlujoSOS() {
         View v = getLayoutInflater().inflate(R.layout.dialog_sos_premium, null);
         AlertDialog dialogo = new AlertDialog.Builder(requireContext(), android.R.style.Theme_Translucent_NoTitleBar_Fullscreen).setView(v).create();
-        
+
         TextView tvTemporizador = v.findViewById(R.id.tvSosTimer);
         final int[] segundosRestantes = {5};
         Handler handler = new Handler();
@@ -206,25 +204,41 @@ public class FragmentoInicio extends Fragment {
         v.findViewById(R.id.btnSendAlert).setOnClickListener(view -> {
             handler.removeCallbacks(ejecutable);
             dialogo.dismiss();
-            Toast.makeText(getContext(), "Alerta enviada a contactos y clínicas cercanas", Toast.LENGTH_LONG).show();
+            // Enviar alerta y también llamar
+            realizarLlamadaEmergencia();
+            Toast.makeText(getContext(), "Alerta enviada y llamando a contacto de emergencia", Toast.LENGTH_LONG).show();
         });
 
         v.findViewById(R.id.btnCallAmbulance).setOnClickListener(view -> {
             handler.removeCallbacks(ejecutable);
             new AlertDialog.Builder(requireContext())
-                .setTitle("Confirmar Llamada")
-                .setMessage("¿Estás seguro? Esto no es una broma.")
-                .setPositiveButton("LLAMAR", (d, w) -> {
-                    dialogo.dismiss();
-                    Intent intent = new Intent(Intent.ACTION_DIAL);
-                    intent.setData(Uri.parse("tel:911"));
-                    startActivity(intent);
-                })
-                .setNegativeButton("CANCELAR", (d, w) -> handler.postDelayed(ejecutable, 1000))
-                .show();
+                    .setTitle("Confirmar Llamada")
+                    .setMessage("¿Llamar a tu contacto de emergencia?")
+                    .setPositiveButton("LLAMAR", (d, w) -> {
+                        dialogo.dismiss();
+                        realizarLlamadaEmergencia();
+                    })
+                    .setNegativeButton("CANCELAR", (d, w) -> handler.postDelayed(ejecutable, 1000))
+                    .show();
         });
 
         dialogo.show();
+    }
+
+    /**
+     * Realiza la llamada al número de emergencia configurado
+     */
+    private void realizarLlamadaEmergencia() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_CALL);
+            intent.setData(Uri.parse("tel:" + NUMERO_EMERGENCIA));
+            startActivity(intent);
+        } catch (Exception e) {
+            // Si no tiene permiso, al menos abre el marcador
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(Uri.parse("tel:" + NUMERO_EMERGENCIA));
+            startActivity(intent);
+        }
     }
 
     @Override public void onResume() { super.onResume(); actualizarResumen(); }

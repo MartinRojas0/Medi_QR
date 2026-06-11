@@ -1,4 +1,4 @@
-package com.mediqr.android.modelos;
+package com.mediqr.medicapp.modelos;
 
 import java.io.Serializable;
 
@@ -25,22 +25,21 @@ public class PerfilPaciente implements Serializable {
     private String cirugias;
 
     public PerfilPaciente() {
-        // Valores por defecto para un perfil nuevo
-        this.nombre = "Martin";
-        this.apellido = "Rojas";
-        this.dni = "12.345.678";
-        this.edad = 20;
-        this.correo = "martin.rojas@email.com";
-        this.telefono = "987654321";
-        this.calle = "Av. Principal";
-        this.distrito = "Lima";
-        this.numeroCasa = "123";
-        this.tipoSangre = "O+";
-        this.alergias = "Ninguna conocida";
-        this.condicionesCronicas = "Ninguna";
-        this.medicamentosActuales = "Ninguna";
-        this.vacunas = "Esquema completo";
-        this.cirugias = "Ninguna";
+        this.nombre = "";
+        this.apellido = "";
+        this.dni = "";
+        this.edad = 0;
+        this.correo = "";
+        this.telefono = "";
+        this.calle = "";
+        this.distrito = "";
+        this.numeroCasa = "";
+        this.tipoSangre = "";
+        this.alergias = "";
+        this.condicionesCronicas = "";
+        this.medicamentosActuales = "";
+        this.vacunas = "";
+        this.cirugias = "";
     }
 
     // Getters y Setters

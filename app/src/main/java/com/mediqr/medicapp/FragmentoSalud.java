@@ -1,6 +1,8 @@
-package com.mediqr.android;
+package com.mediqr.medicapp;
 
 import android.os.Bundle;
+import android.text.InputFilter;
+import android.text.Spanned;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,8 +15,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
-import com.mediqr.android.datos.RepositorioMedico;
-import com.mediqr.android.modelos.PerfilPaciente;
+import com.mediqr.medicapp.datos.RepositorioMedico;
+import com.mediqr.medicapp.modelos.PerfilPaciente;
 
 /**
  * Fragmento de Salud: Expediente clínico digital completo.
@@ -35,7 +37,7 @@ public class FragmentoSalud extends Fragment {
     @Override
     public void onViewCreated(@NonNull View vista, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(vista, savedInstanceState);
-        
+
         try {
             repositorio = RepositorioMedico.getInstancia(requireContext());
 
@@ -79,10 +81,10 @@ public class FragmentoSalud extends Fragment {
 
     private void cargarDatos() {
         if (!isAdded() || repositorio == null) return;
-        
+
         PerfilPaciente perfil = repositorio.getPerfil();
         if (perfil == null) return;
-        
+
         actualizarValorFila(filaSangre, perfil.getTipoSangre());
         actualizarValorFila(filaAlergias, perfil.getAlergias());
         actualizarValorFila(filaMeds, perfil.getMedicamentosActuales());
@@ -104,7 +106,13 @@ public class FragmentoSalud extends Fragment {
     private void actualizarValorFila(View fila, String valor) {
         if (fila != null) {
             TextView tvValor = fila.findViewById(R.id.rowValue);
-            if (tvValor != null) tvValor.setText(valor != null && !valor.isEmpty() ? valor : "No especificado");
+            if (tvValor != null) {
+                if (valor != null && !valor.isEmpty()) {
+                    tvValor.setText(valor);
+                } else {
+                    tvValor.setText("No especificado");
+                }
+            }
         }
     }
 
@@ -112,16 +120,34 @@ public class FragmentoSalud extends Fragment {
         if (!isAdded()) return;
         AlertDialog.Builder constructor = new AlertDialog.Builder(requireContext());
         constructor.setTitle("Actualizar " + titulo);
-        
+
         View vista = getLayoutInflater().inflate(R.layout.dialog_edit_simple, null);
         final TextInputEditText entrada = vista.findViewById(R.id.editSimpleValue);
-        
+
         PerfilPaciente p = repositorio.getPerfil();
-        if (tipoCampo.equals("alergias")) entrada.setText(p.getAlergias());
-        else if (tipoCampo.equals("cronicas")) entrada.setText(p.getCondicionesCronicas());
-        else if (tipoCampo.equals("meds")) entrada.setText(p.getMedicamentosActuales());
-        else if (tipoCampo.equals("vacunas")) entrada.setText(p.getVacunas());
-        else if (tipoCampo.equals("cirugias")) entrada.setText(p.getCirugias());
+        String valorActual = "";
+        if (tipoCampo.equals("alergias")) valorActual = p.getAlergias();
+        else if (tipoCampo.equals("cronicas")) valorActual = p.getCondicionesCronicas();
+        else if (tipoCampo.equals("meds")) valorActual = p.getMedicamentosActuales();
+        else if (tipoCampo.equals("vacunas")) valorActual = p.getVacunas();
+        else if (tipoCampo.equals("cirugias")) valorActual = p.getCirugias();
+        entrada.setText(valorActual);
+
+        // Para alergias: filtrar números
+        if (tipoCampo.equals("alergias")) {
+            InputFilter filtroSinNumeros = new InputFilter() {
+                @Override
+                public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                    for (int i = start; i < end; i++) {
+                        if (Character.isDigit(source.charAt(i))) {
+                            return "";
+                        }
+                    }
+                    return null;
+                }
+            };
+            entrada.setFilters(new InputFilter[]{filtroSinNumeros});
+        }
 
         constructor.setView(vista);
         constructor.setPositiveButton("Guardar", (dialogo, cual) -> {
@@ -153,8 +179,8 @@ public class FragmentoSalud extends Fragment {
                     else if (campo.equals("meds")) p.setMedicamentosActuales(valor);
                     else if (campo.equals("vacunas")) p.setVacunas(valor);
                     else if (campo.equals("cirugias")) p.setCirugias(valor);
-                    
-                    repositorio.guardarDatosSalud(p.getTipoSangre(), p.getAlergias(), p.getCondicionesCronicas(), 
+
+                    repositorio.guardarDatosSalud(p.getTipoSangre(), p.getAlergias(), p.getCondicionesCronicas(),
                             p.getMedicamentosActuales(), p.getVacunas(), p.getCirugias());
                     cargarDatos();
                     Toast.makeText(getContext(), "Información médica actualizada", Toast.LENGTH_SHORT).show();
