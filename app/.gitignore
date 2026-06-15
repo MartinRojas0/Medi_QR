@@ -1,0 +1,15 @@
+# Archivos de Firebase
+google-services.json
+
+# Archivos de build
+/app/build/
+/build/
+.gradle/
+
+# Archivos locales
+local.properties
+.idea/
+
+# Archivos de usuario
+*.iml
+*.jks

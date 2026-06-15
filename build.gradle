@@ -6,16 +6,16 @@ buildscript {
     }
     dependencies {
         // Subimos a la versión 8.4.0 o superior para soportar Gradle moderno
-        classpath 'com.android.tools.build:gradle:8.13.2'
+        classpath 'com.android.tools.build:gradle:9.2.1'
         classpath 'com.google.gms:google-services:4.4.1'
     }
 }
 
 plugins {
     // Sincronizamos la versión aquí también
-    id 'com.android.application' version '8.13.2' apply false
+    id 'com.android.application' version '9.2.1' apply false
     // Ajustamos Kotlin a una versión estable y compatible
-    id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
+    id 'org.jetbrains.kotlin.android' version '2.2.10' apply false
     id 'com.google.gms.google-services' version '4.4.4' apply false
 }
 
