@@ -29,9 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-/**
- * Fragmento de Citas: Gestión de consultas médicas programadas.
- */
+/*** Fragmento de Citas: Gestión de consultas médicas programadas. */
 public class FragmentoCitas extends Fragment {
 
     private RecyclerView rvCitas;
@@ -76,9 +74,7 @@ public class FragmentoCitas extends Fragment {
         }
     }
 
-    /**
-     * Validar que la fecha no sea anterior a hoy
-     */
+    /*** Validar que la fecha no sea anterior a hoy */
     private boolean validarFechaNoAnterior(String fecha) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -103,9 +99,7 @@ public class FragmentoCitas extends Fragment {
         }
     }
 
-    /**
-     * Validar que el texto solo contenga letras y espacios
-     */
+    /*** Validar que el texto solo contenga letras y espacios */
     private boolean validarSoloLetras(String texto) {
         if (texto.isEmpty()) return true;
         for (char c : texto.toCharArray()) {
@@ -116,9 +110,7 @@ public class FragmentoCitas extends Fragment {
         return true;
     }
 
-    /**
-     * Validar hora en formato HH:MM
-     */
+    /*** Validar hora en formato HH:MM */
     private boolean validarHora(String hora) {
         return hora.matches("([01]?[0-9]|2[0-3]):[0-5][0-9]");
     }

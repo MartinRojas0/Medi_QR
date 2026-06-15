@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class FragmentoInicio extends Fragment {
 
-    private static final String NUMERO_EMERGENCIA = "+51979398257";
+    private static final String NUMERO_EMERGENCIA = "+51999333222";
 
     private ImageView qrImagenView;
     private TextView tvQRInfo;
