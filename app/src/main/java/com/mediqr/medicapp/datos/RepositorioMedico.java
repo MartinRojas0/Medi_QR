@@ -72,35 +72,37 @@ public class RepositorioMedico {
                 .get()
                 .addOnSuccessListener(document -> {
                     if (document.exists()) {
+                        // Descarga de datos demográficos básicos
                         String nombre = document.getString("nombre");
                         String email = document.getString("email");
+                        if (nombre != null) prefUsuario.edit().putString("user_name", nombre).apply();
+                        if (email != null) prefUsuario.edit().putString("user_email", email).apply();
+                        if (document.contains("dni")) prefUsuario.edit().putString("user_dni", document.getString("dni")).apply();
+                        if (document.contains("telefono")) prefUsuario.edit().putString("user_phone", document.getString("telefono")).apply();
 
-                        if (nombre != null) {
-                            prefUsuario.edit().putString("user_name", nombre).apply();
-                        }
-                        if (email != null) {
-                            prefUsuario.edit().putString("user_email", email).apply();
-                        }
-                        if (document.contains("dni")) {
-                            prefUsuario.edit().putString("user_dni", document.getString("dni")).apply();
-                        }
-                        if (document.contains("telefono")) {
-                            prefUsuario.edit().putString("user_phone", document.getString("telefono")).apply();
-                        }
                         if (document.contains("edad")) {
                             Object edadObj = document.get("edad");
                             if (edadObj != null) {
-                                prefUsuario.edit().putString("user_age", edadObj.toString() + " años").apply();
+                                String edadStr = edadObj.toString();
+                                if (!edadStr.contains(" años")) edadStr += " años";
+                                prefUsuario.edit().putString("user_age", edadStr).apply();
                             }
                         }
+
+                        // ⚡ NUEVO: Descarga y sincronización de datos médicos / de salud
+                        if (document.contains("tipoSangre")) prefSalud.edit().putString("user_blood_type", document.getString("tipoSangre")).apply();
+                        if (document.contains("alergias")) prefSalud.edit().putString("user_allergies", document.getString("alergias")).apply();
+                        if (document.contains("condicionesCronicas")) prefSalud.edit().putString("user_chronic", document.getString("condicionesCronicas")).apply();
+                        if (document.contains("medicamentos")) prefSalud.edit().putString("user_meds", document.getString("medicamentos")).apply();
+                        if (document.contains("vacunas")) prefSalud.edit().putString("user_vaccines", document.getString("vacunas")).apply();
+                        if (document.contains("cirugias")) prefSalud.edit().putString("user_surgeries", document.getString("cirugias")).apply();
+
                         listener.onSuccess();
                     } else {
-                        listener.onError("No se encontraron datos");
+                        listener.onError("No se encontraron datos en el servidor");
                     }
                 })
-                .addOnFailureListener(e -> {
-                    listener.onError(e.getMessage());
-                });
+                .addOnFailureListener(e -> listener.onError(e.getMessage()));
     }
 
     // Método para guardar perfil en Firestore
@@ -183,6 +185,7 @@ public class RepositorioMedico {
     }
 
     public void guardarPerfil(PerfilPaciente perfil) {
+        // 1. Persistencia Inmediata en Caché Local (SharedPreferences)
         prefUsuario.edit()
                 .putString("user_name", perfil.getNombreCompleto())
                 .putString("user_dni", perfil.getDni())
@@ -193,9 +196,31 @@ public class RepositorioMedico {
                 .putString("user_district", perfil.getDistrito())
                 .putString("user_houseNum", perfil.getNumeroCasa())
                 .apply();
+
+        // 2. Réplica Automática y Asíncrona en la Nube (Firestore)
+        if (currentUserId != null && !currentUserId.isEmpty()) {
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("nombre", perfil.getNombreCompleto());
+            userData.put("email", perfil.getCorreo());
+            userData.put("dni", perfil.getDni());
+            userData.put("telefono", perfil.getTelefono());
+            userData.put("edad", perfil.getEdad());
+            userData.put("direccion", perfil.getDireccionCompleta());
+            userData.put("tipoSangre", perfil.getTipoSangre());
+            userData.put("alergias", perfil.getAlergias());
+            userData.put("condicionesCronicas", perfil.getCondicionesCronicas());
+            userData.put("medicamentos", perfil.getMedicamentosActuales());
+
+            firestore.collection("usuarios")
+                    .document(currentUserId)
+                    .set(userData, com.google.firebase.firestore.SetOptions.merge()) // Evita sobreescribir otros campos como fechaRegistro
+                    .addOnSuccessListener(aVoid -> Log.d("MediQR_Sync", "Sincronización en la nube exitosa."))
+                    .addOnFailureListener(e -> Log.e("MediQR_Sync", "Error de réplica remota: " + e.getMessage()));
+        }
     }
 
     public void guardarDatosSalud(String sangre, String alergias, String cronicas, String meds, String vacunas, String cirugias) {
+        // Guardado local
         prefSalud.edit()
                 .putString("user_blood_type", sangre)
                 .putString("user_allergies", alergias)
@@ -204,6 +229,21 @@ public class RepositorioMedico {
                 .putString("user_vaccines", vacunas)
                 .putString("user_surgeries", cirugias)
                 .apply();
+
+        // Sincronización incremental en Firestore
+        if (currentUserId != null && !currentUserId.isEmpty()) {
+            Map<String, Object> healthData = new HashMap<>();
+            healthData.put("tipoSangre", sangre);
+            healthData.put("alergias", alergias);
+            healthData.put("condicionesCronicas", cronicas);
+            healthData.put("medicamentos", meds);
+
+            firestore.collection("usuarios")
+                    .document(currentUserId)
+                    .set(healthData, com.google.firebase.firestore.SetOptions.merge())
+                    .addOnSuccessListener(aVoid -> Log.d("MediQR_Sync", "Datos de salud sincronizados."))
+                    .addOnFailureListener(e -> Log.e("MediQR_Sync", "Error en datos de salud: " + e.getMessage()));
+        }
     }
 
     // --- GESTIÓN DE DOCUMENTOS ---

@@ -38,10 +38,25 @@ class InicioSesionActivity : AppCompatActivity() {
         progressHelper = ProgressHelper(this)
         authHelper = FirebaseAuthHelper(this)
 
-        // Si ya está logueado, ir directo al home
+        // Corregido: Si ya está logueado, descarga la data de la nube antes de ir al Home
         if (authHelper.isUserLoggedIn()) {
-            irAPrincipal()
-            return
+            val userId = authHelper.getCurrentUser()?.uid ?: ""
+            val repositorio = RepositorioMedico.getInstancia(this)
+            repositorio.setCurrentUserId(userId)
+
+            progressHelper.mostrar("Sincronizando datos...")
+            repositorio.cargarPerfilDesdeFirestore(object : RepositorioMedico.OnPerfilCargadoListener {
+                override fun onSuccess() {
+                    progressHelper.ocultar()
+                    irAPrincipal()
+                }
+                override fun onError(error: String) {
+                    progressHelper.ocultar()
+                    // Si falla la red, abre igual para permitir el uso con la caché local
+                    irAPrincipal()
+                }
+            })
+            return;
         }
 
         setupListeners()
