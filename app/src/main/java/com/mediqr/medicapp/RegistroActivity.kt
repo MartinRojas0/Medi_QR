@@ -110,16 +110,24 @@ class RegistroActivity : AppCompatActivity() {
                 val repositorio = RepositorioMedico.getInstancia(this)
                 repositorio.setCurrentUserId(userId)
 
-                // Crear perfil con los datos del registro
                 val perfil = repositorio.getPerfil()
                 val nombrePartes = nombre.split(" ", limit = 2)
                 perfil.setNombre(nombrePartes[0])
                 if (nombrePartes.size > 1) {
                     perfil.setApellido(nombrePartes[1])
+                } else {
+                    perfil.setApellido("")
                 }
                 perfil.setCorreo(email)
 
-                // Guardar en Firestore
+                perfil.setDni("")
+                perfil.setTelefono("")
+                perfil.setCalle("")
+                perfil.setDistrito("")
+                perfil.setNumeroCasa("")
+
+                repositorio.guardarPerfil(perfil)
+
                 repositorio.guardarPerfilEnFirestore(perfil, object : RepositorioMedico.OnPerfilGuardadoListener {
                     override fun onSuccess() {
                         progressHelper.ocultar()
@@ -131,7 +139,8 @@ class RegistroActivity : AppCompatActivity() {
                     override fun onError(error: String) {
                         progressHelper.ocultar()
                         registerButton.isEnabled = true
-                        Toast.makeText(this@RegistroActivity, "Error al guardar perfil: $error", Toast.LENGTH_LONG).show()
+                        // Fallback: Aunque falle el internet de subida, se le permite ingresar con el estado local inicializado
+                        Toast.makeText(this@RegistroActivity, "Perfil local listo. Nube pendiente: $error", Toast.LENGTH_SHORT).show()
                         irAPrincipal()
                     }
                 })

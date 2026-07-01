@@ -5,18 +5,17 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Subimos a la versión 8.4.0 o superior para soportar Gradle moderno
         classpath 'com.android.tools.build:gradle:9.2.1'
         classpath 'com.google.gms:google-services:4.4.1'
     }
 }
 
 plugins {
-    // Sincronizamos la versión aquí también
     id 'com.android.application' version '9.2.1' apply false
-    // Ajustamos Kotlin a una versión estable y compatible
     id 'org.jetbrains.kotlin.android' version '2.2.10' apply false
     id 'com.google.gms.google-services' version '4.4.4' apply false
+    id("com.google.firebase.firebase-perf") version "2.0.2" apply false
+
 }
 
 task clean(type: Delete) {
